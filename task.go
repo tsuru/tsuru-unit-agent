@@ -36,3 +36,8 @@ func SaveApprcFile(environs map[string]bind.EnvVar) error {
 	file.WriteString(buffer.String())
 	return nil
 }
+
+// ExecuteStartScript executes the start script.
+func ExecuteStartScript() error {
+	return nil
+}

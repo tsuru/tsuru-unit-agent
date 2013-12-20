@@ -35,3 +35,8 @@ func (s *S) TestSaveApprcFile(c *gocheck.C) {
 	result := strings.Replace(string(data), "\n", "", -1)
 	c.Assert(result, gocheck.Matches, expected)
 }
+
+func (s *S) TestExecuteStartScript(c *gocheck.C) {
+	err := ExecuteStartScript()
+	c.Assert(err, gocheck.IsNil)
+}
