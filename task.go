@@ -8,17 +8,32 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/globocom/tsuru/app/bind"
+	"github.com/globocom/tsuru/exec"
 	"github.com/globocom/tsuru/fs"
+	"sync"
 	"time"
 )
 
-var fsystem fs.Fs
+var (
+	execut  exec.Executor
+	emutex  sync.Mutex
+	fsystem fs.Fs
+)
 
 func filesystem() fs.Fs {
 	if fsystem == nil {
 		fsystem = fs.OsFs{}
 	}
 	return fsystem
+}
+
+func executor() exec.Executor {
+	emutex.Lock()
+	defer emutex.Unlock()
+	if execut == nil {
+		execut = exec.OsExecutor{}
+	}
+	return execut
 }
 
 // SaveApprcFile generates the apprc file with the environs data.
@@ -39,5 +54,5 @@ func SaveApprcFile(environs map[string]bind.EnvVar) error {
 
 // ExecuteStartScript executes the start script.
 func ExecuteStartScript() error {
-	return nil
+	return executor().Execute("/var/lib/tsuru/start", nil, nil, nil, nil)
 }

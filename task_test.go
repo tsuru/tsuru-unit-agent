@@ -6,11 +6,19 @@ package agent
 
 import (
 	"github.com/globocom/tsuru/app/bind"
+	"github.com/globocom/tsuru/exec"
+	etesting "github.com/globocom/tsuru/exec/testing"
 	ftesting "github.com/globocom/tsuru/fs/testing"
 	"io/ioutil"
 	"launchpad.net/gocheck"
 	"strings"
 )
+
+func setExecutor(e exec.Executor) {
+	emutex.Lock()
+	execut = e
+	emutex.Unlock()
+}
 
 func (s *S) TestSaveApprcFile(c *gocheck.C) {
 	rfs := ftesting.RecordingFs{}
@@ -37,6 +45,10 @@ func (s *S) TestSaveApprcFile(c *gocheck.C) {
 }
 
 func (s *S) TestExecuteStartScript(c *gocheck.C) {
+	fexec := &etesting.FakeExecutor{}
+	setExecutor(fexec)
+	defer setExecutor(nil)
 	err := ExecuteStartScript()
 	c.Assert(err, gocheck.IsNil)
+	c.Assert(fexec.ExecutedCmd("/var/lib/tsuru/start", nil), gocheck.Equals, true)
 }
