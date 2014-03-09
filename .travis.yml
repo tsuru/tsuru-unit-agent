@@ -3,5 +3,5 @@ go:
   - 1.1.2
   - 1.2
   - tip
-install: go get -d ./...
-script: go test
+install: make get
+script: make test
