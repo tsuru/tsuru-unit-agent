@@ -33,8 +33,8 @@ func (s *S) TestGetEnvs(c *gocheck.C) {
 		w.Write(data)
 	}))
 	defer ts.Close()
-	client := &TsuruClient{URL: ts.URL}
-	envs, err = client.GetEnvs("appname")
+	client := &tsuruClient{URL: ts.URL}
+	envs, err = client.getEnvs("appname")
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(ok, gocheck.Equals, true)
 	c.Assert(envs, gocheck.NotNil)

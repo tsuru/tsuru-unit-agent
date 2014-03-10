@@ -36,8 +36,8 @@ func executor() exec.Executor {
 	return execut
 }
 
-// SaveApprcFile generates the apprc file with the environs data.
-func SaveApprcFile(environs map[string]bind.EnvVar) error {
+// saveApprcFile generates the apprc file with the environs data.
+func saveApprcFile(environs map[string]bind.EnvVar) error {
 	file, err := filesystem().Create("/home/application/apprc")
 	if err != nil {
 		return err
@@ -52,7 +52,7 @@ func SaveApprcFile(environs map[string]bind.EnvVar) error {
 	return nil
 }
 
-// ExecuteStartScript executes the start script.
-func ExecuteStartScript() error {
+// executeStartScript executes the start script.
+func executeStartScript() error {
 	return executor().Execute("/var/lib/tsuru/start", nil, nil, nil, nil)
 }

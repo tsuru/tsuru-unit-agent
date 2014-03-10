@@ -32,7 +32,7 @@ func (s *S) TestSaveApprcFile(c *gocheck.C) {
 		"DATABASE_USER":     {Name: "DATABASE_USER", Value: "root", Public: true},
 		"DATABASE_PASSWORD": {Name: "DATABASE_PASSWORD", Value: "secret", Public: false},
 	}
-	err := SaveApprcFile(envs)
+	err := saveApprcFile(envs)
 	c.Assert(err, gocheck.IsNil)
 	f, err := rfs.Open("/home/application/apprc")
 	c.Assert(err, gocheck.IsNil)
@@ -48,7 +48,7 @@ func (s *S) TestExecuteStartScript(c *gocheck.C) {
 	fexec := &etesting.FakeExecutor{}
 	setExecutor(fexec)
 	defer setExecutor(nil)
-	err := ExecuteStartScript()
+	err := executeStartScript()
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(fexec.ExecutedCmd("/var/lib/tsuru/start", nil), gocheck.Equals, true)
 }

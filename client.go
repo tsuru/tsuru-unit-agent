@@ -12,16 +12,16 @@ import (
 	"net/http"
 )
 
-// Client represents a tsuru api client.
-type Client interface {
-	GetEnvs(app string) (map[string]bind.EnvVar, error)
+// client represents a tsuru api client.
+type client interface {
+	getEnvs(app string) (map[string]bind.EnvVar, error)
 }
 
-type TsuruClient struct {
+type tsuruClient struct {
 	URL string
 }
 
-func (c *TsuruClient) GetEnvs(app string) (map[string]bind.EnvVar, error) {
+func (c *tsuruClient) getEnvs(app string) (map[string]bind.EnvVar, error) {
 	resp, err := http.Get(fmt.Sprintf("%s/envs", c.URL))
 	if err != nil {
 		return nil, err

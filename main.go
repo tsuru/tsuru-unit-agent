@@ -5,16 +5,16 @@
 package main
 
 func main() {
-	client := TsuruClient{URL: "localhost:8080"}
-	envs, err := client.GetEnvs("myapp")
+	client := tsuruClient{URL: "localhost:8080"}
+	envs, err := client.getEnvs("myapp")
 	if err != nil {
 		panic(err)
 	}
-	err = SaveApprcFile(envs)
+	err = saveApprcFile(envs)
 	if err != nil {
 		panic(err)
 	}
-	err = ExecuteStartScript()
+	err = executeStartScript()
 	if err != nil {
 		panic(err)
 	}
