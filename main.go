@@ -4,9 +4,13 @@
 
 package main
 
+import "os"
+
 func main() {
-	client := tsuruClient{URL: "localhost:8080"}
-	envs, err := client.getEnvs("myapp")
+	target := os.Args[1]
+	appName := os.Args[2]
+	client := tsuruClient{URL: target}
+	envs, err := client.getEnvs(appName)
 	if err != nil {
 		panic(err)
 	}
