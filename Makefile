@@ -8,6 +8,7 @@ deps:
 ptest: clean deps
 	@echo "Running tests"
 	@py.test -s .
+	@flake8 .
 
 get:
 	@/bin/echo "Installing test dependencies... "
