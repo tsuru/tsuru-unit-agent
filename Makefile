@@ -2,6 +2,10 @@ deps:
 	@echo "Installing deps"
 	@pip install -r test-requirements.txt
 
+ptest: deps
+	@echo "Running tests"
+	@py.test -s .
+
 get:
 	@/bin/echo "Installing test dependencies... "
 	@go list -f '{{range .TestImports}}{{.}} {{end}}' ./... | tr ' ' '\n' |\
