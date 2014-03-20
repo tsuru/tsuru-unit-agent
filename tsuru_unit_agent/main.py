@@ -3,7 +3,7 @@ from tsuru_unit_agent.client import Client
 
 
 def main():
-    client = Client("http://localhost")
+    client = Client("http://localhost", "token")
     envs = client.get_envs("app_name")
     tasks.save_apprc_file(envs)
     tasks.execute_start_script()
