@@ -12,3 +12,7 @@ def main():
     envs = client.get_envs(app_name)
     tasks.save_apprc_file(envs)
     tasks.execute_start_script()
+
+
+if __name__ == "__main__":
+    main()
