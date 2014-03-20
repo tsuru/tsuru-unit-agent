@@ -14,10 +14,10 @@ class TestTasks(unittest.TestCase):
     @mock.patch("io.open")
     def test_save_apprc_file(self, open_mock):
         file_mock = open_mock.return_value
-        environs = {
-            "DATABASE_HOST": "localhost",
-            "DATABASE_USER": "root",
-        }
+        environs = [
+            {"name": "DATABASE_HOST", "value": "localhost", "public": True},
+            {"name": "DATABASE_USER", "value": "root", "public": True},
+        ]
 
         save_apprc_file(environs)
 
