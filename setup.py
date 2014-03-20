@@ -15,4 +15,9 @@ setup(
     author_email="tsuru@corp.globo.com",
     include_package_data=True,
     install_requires=["requests"],
+    entry_points={
+        'console_scripts': [
+            'tsuru_unit_agent = tsuru_unit_agent.main:main',
+        ],
+    },
 )
