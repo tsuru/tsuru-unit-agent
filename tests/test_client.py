@@ -17,4 +17,5 @@ class TestClient(unittest.TestCase):
         envs = client.get_envs(app="myapp")
         self.assertDictEqual(envs, {})
         get_mock.assert_called_with(
-            "{}/apps/myapp/envs".format(client.url))
+            "{}/apps/myapp/env".format(client.url),
+            headers={"Authorization", "bearer token"})

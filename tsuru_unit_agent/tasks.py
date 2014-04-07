@@ -4,8 +4,8 @@ import io
 from datetime import datetime
 
 
-def execute_start_script():
-    subprocess.call(["/var/lib/tsuru/start"])
+def execute_start_script(start_cmd):
+    subprocess.call([start_cmd])
 
 
 def save_apprc_file(environs):

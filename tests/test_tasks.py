@@ -8,8 +8,8 @@ class TestTasks(unittest.TestCase):
 
     @mock.patch("subprocess.call")
     def test_execute(self, call_mock):
-        execute_start_script()
-        call_mock.assert_called_with(["/var/lib/tsuru/start"])
+        execute_start_script("my_command")
+        call_mock.assert_called_with(["my_command"])
 
     @mock.patch("io.open")
     def test_save_apprc_file(self, open_mock):

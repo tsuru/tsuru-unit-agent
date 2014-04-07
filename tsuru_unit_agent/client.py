@@ -8,5 +8,7 @@ class Client(object):
         self.token = token
 
     def get_envs(self, app):
-        response = requests.get("{}/apps/{}/envs".format(self.url, app))
+        response = requests.get(
+            "{}/apps/{}/env".format(self.url, app),
+            headers={"Authorization", "bearer {}".format(self.token)})
         return json.loads(response)
