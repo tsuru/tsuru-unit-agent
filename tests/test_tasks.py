@@ -21,5 +21,5 @@ class TestTasks(unittest.TestCase):
 
         save_apprc_file(environs)
 
-        open_mock.assert_called_with("/home/application/apprc")
+        open_mock.assert_called_with("/home/application/apprc", "w")
         file_mock.write.assert_called()
