@@ -13,11 +13,11 @@ class TestClient(unittest.TestCase):
     @mock.patch("requests.get")
     def test_get_envs(self, get_mock):
         response = mock.Mock()
-        response.content = "{}"
+        response.json = mock.Mock(side_effect=lambda: {"a": "b"})
         get_mock.return_value = response
         client = Client("http://localhost", "token")
         envs = client.get_envs(app="myapp")
-        self.assertDictEqual(envs, {})
+        self.assertDictEqual(envs, {"a": "b"})
         get_mock.assert_called_with(
             "{}/apps/myapp/env".format(client.url),
             headers={"Authorization": "bearer token"})

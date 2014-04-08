@@ -1,5 +1,4 @@
 import requests
-import json
 
 
 class Client(object):
@@ -11,4 +10,4 @@ class Client(object):
         response = requests.get(
             "{}/apps/{}/env".format(self.url, app),
             headers={"Authorization": "bearer {}".format(self.token)})
-        return json.loads(response.content)
+        return response.json()
