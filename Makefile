@@ -8,4 +8,4 @@ deps:
 test: clean deps
 	@echo "Running tests"
 	@py.test -s .
-	@flake8 .
+	@flake8 --max-line-length=115 .

@@ -1,11 +1,35 @@
 import subprocess
 import io
+import os
+import yaml
 
 from datetime import datetime
 
 
-def execute_start_script(start_cmd):
-    subprocess.call([start_cmd])
+def exec_with_envs(commands, tsuru_envs, with_shell=False, working_dir="/home/application/current"):
+    envs = {env['name']: env['value'] for env in tsuru_envs}
+    for command in commands:
+        subprocess.Popen(command, shell=with_shell, cwd=working_dir, env=envs).wait()
+
+
+def execute_start_script(start_cmd, tsuru_envs):
+    exec_with_envs([start_cmd], tsuru_envs)
+
+
+def run_hooks(app_data, tsuru_envs):
+    commands = (app_data.get('hooks') or {}).get('build') or []
+    exec_with_envs(commands, tsuru_envs, with_shell=True)
+
+
+def load_app_yaml(working_dir="/home/application/current"):
+    files_name = ["tsuru.yaml", "tsuru.yml", "app.yaml", "app.yml"]
+    for file_name in files_name:
+        try:
+            with io.open(os.path.join(working_dir, file_name)) as f:
+                return yaml.load(f.read())
+        except IOError:
+            pass
+    return None
 
 
 def save_apprc_file(environs):
