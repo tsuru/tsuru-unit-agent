@@ -1,4 +1,4 @@
--r requirements.txt
+-e .
 pytest==2.5.2
 flake8==2.0
 mock==1.0.1

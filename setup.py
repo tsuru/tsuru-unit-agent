@@ -5,7 +5,6 @@
 from setuptools import setup, find_packages
 from tsuru_unit_agent import __version__
 
-
 setup(
     name="tsuru-unit-agent",
     version=__version__,
@@ -14,7 +13,7 @@ setup(
     author="tsuru",
     author_email="tsuru@corp.globo.com",
     include_package_data=True,
-    install_requires=["requests"],
+    install_requires=["requests", "PyYAML"],
     entry_points={
         'console_scripts': [
             'tsuru_unit_agent = tsuru_unit_agent.main:main',
