@@ -30,11 +30,11 @@ def parse_args(args=None):
     if args is None:
         args = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Runs tsuru-unit-agent.')
-    parser.add_argument('action', choices=actions.keys(), help='Action being executed')
     parser.add_argument('url', help='URL for tsuru API server')
     parser.add_argument('token', help='Authentication token for tsuru API server')
     parser.add_argument('app_name', help='The app name')
     parser.add_argument('start_cmd', help='Command to run after notifying tsuru API server')
+    parser.add_argument('action', default='run', nargs='?', choices=actions.keys(), help='Action being executed')
     return parser.parse_args(args)
 
 

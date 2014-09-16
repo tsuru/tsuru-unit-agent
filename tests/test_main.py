@@ -6,7 +6,15 @@ from tsuru_unit_agent.main import parse_args, main
 
 class TestMain(unittest.TestCase):
     def test_parse_args(self):
-        args = parse_args(['run', 'a', 'b', 'c', 'd'])
+        args = parse_args(['a', 'b', 'c', 'd', 'run'])
+        self.assertEqual(args.action, 'run')
+        self.assertEqual(args.url, 'a')
+        self.assertEqual(args.token, 'b')
+        self.assertEqual(args.app_name, 'c')
+        self.assertEqual(args.start_cmd, 'd')
+
+    def test_parse_args_default_action(self):
+        args = parse_args(['a', 'b', 'c', 'd'])
         self.assertEqual(args.action, 'run')
         self.assertEqual(args.url, 'a')
         self.assertEqual(args.token, 'b')
@@ -14,7 +22,7 @@ class TestMain(unittest.TestCase):
         self.assertEqual(args.start_cmd, 'd')
 
     def test_parse_args_deploy(self):
-        args = parse_args(['deploy', 'a', 'b', 'c', 'd'])
+        args = parse_args(['a', 'b', 'c', 'd', 'deploy'])
         self.assertEqual(args.action, 'deploy')
         self.assertEqual(args.url, 'a')
         self.assertEqual(args.token, 'b')
@@ -24,9 +32,8 @@ class TestMain(unittest.TestCase):
     def test_parse_args_invalid(self):
         self.assertRaises(SystemExit, parse_args, [])
         self.assertRaises(SystemExit, parse_args, ['a', 'b', 'c', 'd', 'e'])
-        self.assertRaises(SystemExit, parse_args, ['run', 'a', 'b', 'c'])
 
-    @mock.patch('sys.argv', ['', 'deploy', 'http://localhost', 'token', 'app1', 'mycmd'])
+    @mock.patch('sys.argv', ['', 'http://localhost', 'token', 'app1', 'mycmd', 'deploy'])
     @mock.patch('tsuru_unit_agent.main.tasks')
     @mock.patch('tsuru_unit_agent.main.Client')
     def test_main_deploy_action(self, client_mock, tasks_mock):
@@ -49,7 +56,7 @@ class TestMain(unittest.TestCase):
         post_app_yaml_mock.assert_called_once_with('app1', load_yaml_mock.return_value)
         run_hooks_mock.assert_called_once_with(load_yaml_mock.return_value, register_mock.return_value)
 
-    @mock.patch('sys.argv', ['', 'run', 'http://localhost', 'token', 'app1', 'mycmd'])
+    @mock.patch('sys.argv', ['', 'http://localhost', 'token', 'app1', 'mycmd', 'run'])
     @mock.patch('tsuru_unit_agent.main.tasks')
     @mock.patch('tsuru_unit_agent.main.Client')
     def test_main_run_action(self, client_mock, tasks_mock):
