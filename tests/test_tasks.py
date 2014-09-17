@@ -9,6 +9,8 @@ class TestTasks(TestCase):
 
     @mock.patch("subprocess.Popen")
     def test_execute(self, popen_mock):
+        wait_mock = popen_mock.return_value.wait
+        wait_mock.return_value = 0
         environs = [
             {"name": "DATABASE_HOST", "value": "localhost", "public": True},
             {"name": "DATABASE_USER", "value": "root", "public": True},
@@ -18,6 +20,24 @@ class TestTasks(TestCase):
             "DATABASE_HOST": "localhost",
             "DATABASE_USER": "root",
         })
+        wait_mock.assert_called_once()
+
+    @mock.patch("sys.exit")
+    @mock.patch("subprocess.Popen")
+    def test_execute_failing(self, popen_mock, exit_mock):
+        wait_mock = popen_mock.return_value.wait
+        wait_mock.return_value = 10
+        environs = [
+            {"name": "DATABASE_HOST", "value": "localhost", "public": True},
+            {"name": "DATABASE_USER", "value": "root", "public": True},
+        ]
+        execute_start_script("my_command", environs)
+        popen_mock.assert_called_with("my_command", shell=False, cwd="/home/application/current", env={
+            "DATABASE_HOST": "localhost",
+            "DATABASE_USER": "root",
+        })
+        wait_mock.assert_called_once()
+        exit_mock.assert_called_once_with(10)
 
     def test_save_apprc_file(self):
         environs = [
@@ -38,6 +58,8 @@ class TestTasks(TestCase):
 class RunHooksTest(TestCase):
     @mock.patch("subprocess.Popen")
     def test_execute_commands(self, popen_call):
+        wait_mock = popen_call.return_value.wait
+        wait_mock.return_value = 0
         data = {"hooks": {"build": ["ble"]}}
         envs = [
             {"name": "my_key", "value": "my_value"},
@@ -45,6 +67,22 @@ class RunHooksTest(TestCase):
         run_hooks(data, envs)
         popen_call.assert_called_with("ble", shell=True,
                                       cwd="/home/application/current", env={'my_key': 'my_value'})
+        wait_mock.assert_called_once()
+
+    @mock.patch("sys.exit")
+    @mock.patch("subprocess.Popen")
+    def test_execute_failing_commands(self, popen_call, exit_mock):
+        wait_mock = popen_call.return_value.wait
+        wait_mock.return_value = 5
+        data = {"hooks": {"build": ["ble"]}}
+        envs = [
+            {"name": "my_key", "value": "my_value"},
+        ]
+        run_hooks(data, envs)
+        popen_call.assert_called_with("ble", shell=True,
+                                      cwd="/home/application/current", env={'my_key': 'my_value'})
+        wait_mock.assert_called_once()
+        exit_mock.assert_called_once_with(5)
 
     @mock.patch("subprocess.Popen")
     def test_execute_commands_hooks_empty(self, subprocess_call):

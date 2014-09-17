@@ -2,6 +2,7 @@ import subprocess
 import io
 import os
 import yaml
+import sys
 
 from datetime import datetime
 
@@ -9,7 +10,9 @@ from datetime import datetime
 def exec_with_envs(commands, tsuru_envs, with_shell=False, working_dir="/home/application/current"):
     envs = {env['name']: env['value'] for env in tsuru_envs}
     for command in commands:
-        subprocess.Popen(command, shell=with_shell, cwd=working_dir, env=envs).wait()
+        status = subprocess.Popen(command, shell=with_shell, cwd=working_dir, env=envs).wait()
+        if status != 0:
+            sys.exit(status)
 
 
 def execute_start_script(start_cmd, tsuru_envs):
