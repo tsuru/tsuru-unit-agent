@@ -3,12 +3,15 @@ import io
 import os
 import yaml
 import sys
+import os.path
 
 from datetime import datetime
 
 
 def exec_with_envs(commands, tsuru_envs, with_shell=False, working_dir="/home/application/current"):
     envs = {env['name']: env['value'] for env in tsuru_envs}
+    if not os.path.exists(working_dir):
+        working_dir = "/"
     for command in commands:
         status = subprocess.Popen(command, shell=with_shell, cwd=working_dir, env=envs).wait()
         if status != 0:
@@ -16,7 +19,7 @@ def exec_with_envs(commands, tsuru_envs, with_shell=False, working_dir="/home/ap
 
 
 def execute_start_script(start_cmd, tsuru_envs):
-    exec_with_envs([start_cmd], tsuru_envs)
+    exec_with_envs([start_cmd], tsuru_envs, with_shell=True)
 
 
 def run_hooks(app_data, tsuru_envs):

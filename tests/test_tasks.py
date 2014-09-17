@@ -16,7 +16,7 @@ class TestTasks(TestCase):
             {"name": "DATABASE_USER", "value": "root", "public": True},
         ]
         execute_start_script("my_command", environs)
-        popen_mock.assert_called_with("my_command", shell=False, cwd="/home/application/current", env={
+        popen_mock.assert_called_with("my_command", shell=True, cwd="/", env={
             "DATABASE_HOST": "localhost",
             "DATABASE_USER": "root",
         })
@@ -32,7 +32,7 @@ class TestTasks(TestCase):
             {"name": "DATABASE_USER", "value": "root", "public": True},
         ]
         execute_start_script("my_command", environs)
-        popen_mock.assert_called_with("my_command", shell=False, cwd="/home/application/current", env={
+        popen_mock.assert_called_with("my_command", shell=True, cwd="/", env={
             "DATABASE_HOST": "localhost",
             "DATABASE_USER": "root",
         })
@@ -66,8 +66,24 @@ class RunHooksTest(TestCase):
         ]
         run_hooks(data, envs)
         popen_call.assert_called_with("ble", shell=True,
+                                      cwd="/", env={'my_key': 'my_value'})
+        wait_mock.assert_called_once()
+
+    @mock.patch("os.path.exists")
+    @mock.patch("subprocess.Popen")
+    def test_execute_commands_default_cwd_exists(self, popen_call, exists_mock):
+        wait_mock = popen_call.return_value.wait
+        wait_mock.return_value = 0
+        exists_mock.return_value = True
+        data = {"hooks": {"build": ["ble"]}}
+        envs = [
+            {"name": "my_key", "value": "my_value"},
+        ]
+        run_hooks(data, envs)
+        popen_call.assert_called_with("ble", shell=True,
                                       cwd="/home/application/current", env={'my_key': 'my_value'})
         wait_mock.assert_called_once()
+        exists_mock.assert_called_once_with("/home/application/current")
 
     @mock.patch("sys.exit")
     @mock.patch("subprocess.Popen")
@@ -80,7 +96,7 @@ class RunHooksTest(TestCase):
         ]
         run_hooks(data, envs)
         popen_call.assert_called_with("ble", shell=True,
-                                      cwd="/home/application/current", env={'my_key': 'my_value'})
+                                      cwd="/", env={'my_key': 'my_value'})
         wait_mock.assert_called_once()
         exit_mock.assert_called_once_with(5)
 
