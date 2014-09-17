@@ -10,6 +10,7 @@ from datetime import datetime
 
 def exec_with_envs(commands, tsuru_envs, with_shell=False, working_dir="/home/application/current"):
     envs = {env['name']: env['value'] for env in tsuru_envs}
+    envs.update(os.environ)
     if not os.path.exists(working_dir):
         working_dir = "/"
     for command in commands:
