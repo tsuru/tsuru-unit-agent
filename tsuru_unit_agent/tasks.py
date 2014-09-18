@@ -5,22 +5,44 @@ import yaml
 import sys
 import os.path
 from datetime import datetime
+from threading import Thread
 
 from tsuru_unit_agent.stream import Stream
 
 
-def exec_with_envs(commands, with_shell=False, working_dir="/home/application/current"):
+def process_output(in_fd, out_fd):
+    for line in iter(in_fd.readline, b''):
+        if line is None:
+            break
+        out_fd.write(line)
+    out_fd.flush()
+    in_fd.close()
+
+
+def exec_with_envs(commands, with_shell=False, working_dir="/home/application/current", pipe_output=False):
     if not os.path.exists(working_dir):
         working_dir = "/"
     for command in commands:
-        stdout = Stream(echo_output=sys.stdout,
-                        default_stream_name='stdout',
-                        watcher_name='unit-agent')
-        stderr = Stream(echo_output=sys.stderr,
-                        default_stream_name='stderr',
-                        watcher_name='unit-agent')
-        status = subprocess.Popen(command, shell=with_shell, cwd=working_dir, env=os.environ,
-                                  stdout=stdout, stderr=stderr).wait()
+        popen_output = None
+        if pipe_output:
+            popen_output = subprocess.PIPE
+        pipe = subprocess.Popen(command, shell=with_shell, cwd=working_dir, env=os.environ,
+                                stdout=popen_output, stderr=popen_output)
+        if pipe_output:
+            stdout = Stream(echo_output=sys.stdout,
+                            default_stream_name='stdout',
+                            watcher_name='unit-agent')
+            stderr = Stream(echo_output=sys.stderr,
+                            default_stream_name='stderr',
+                            watcher_name='unit-agent')
+            stdout_thread = Thread(target=process_output, args=(pipe.stdout, stdout))
+            stdout_thread.start()
+            stderr_thread = Thread(target=process_output, args=(pipe.stderr, stderr))
+            stderr_thread.start()
+        status = pipe.wait()
+        if pipe_output:
+            stdout_thread.join()
+            stderr_thread.join()
         if status != 0:
             sys.exit(status)
 
@@ -38,7 +60,7 @@ def run_restart_hooks(position, app_data):
     restart_hook = (app_data.get('hooks') or {}).get('restart') or {}
     commands = restart_hook.get('{}-each'.format(position)) or []
     commands += restart_hook.get(position) or []
-    exec_with_envs(commands, with_shell=True)
+    exec_with_envs(commands, with_shell=True, pipe_output=True)
 
 
 def load_app_yaml(working_dir="/home/application/current"):

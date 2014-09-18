@@ -1,6 +1,7 @@
 from unittest import TestCase
 import mock
 import os
+import sys
 
 from tsuru_unit_agent.tasks import (
     execute_start_script,
@@ -120,6 +121,8 @@ class RunRestartHooksTest(TestCase):
     @mock.patch("os.environ", {'env': 'var'})
     @mock.patch("subprocess.Popen")
     def test_run_restart_hooks(self, popen_call):
+        popen_call.return_value.stdout.readline.return_value = ''
+        popen_call.return_value.stderr.readline.return_value = ''
         wait_mock = popen_call.return_value.wait
         wait_mock.return_value = 0
         data = {"hooks": {"restart": {
@@ -140,6 +143,34 @@ class RunRestartHooksTest(TestCase):
         self.assertEqual(popen_call.call_count, 4)
         self.assertEqual(popen_call.call_args_list[3][0][0], 'a1')
         self.assertEqual(popen_call.call_args_list[2][0][0], 'a2')
+
+    @mock.patch("tsuru_unit_agent.tasks.Stream")
+    @mock.patch("os.environ", {'env': 'var'})
+    @mock.patch("subprocess.Popen")
+    def test_run_restart_hooks_calls_stream(self, popen_call, stream_mock):
+        out1 = ['stdout_out1', '']
+        out2 = ['stderr_out1', '']
+        popen_call.return_value.stdout.readline.side_effect = lambda: out1.pop(0)
+        popen_call.return_value.stderr.readline.side_effect = lambda: out2.pop(0)
+        wait_mock = popen_call.return_value.wait
+        wait_mock.return_value = 0
+        data = {"hooks": {"restart": {
+            "before": ["b1"],
+        }}}
+        run_restart_hooks('before', data)
+        self.assertEqual(popen_call.call_count, 1)
+        self.assertEqual(popen_call.call_args_list[0][0][0], 'b1')
+        self.assertEqual(popen_call.call_args_list[0][1]['shell'], True)
+        self.assertEqual(popen_call.call_args_list[0][1]['cwd'], '/')
+        self.assertDictEqual(popen_call.call_args_list[0][1]['env'], {'env': 'var'})
+        wait_mock.assert_called_once()
+        stream_mock.assert_any_call(echo_output=sys.stdout, default_stream_name='stdout',
+                                    watcher_name='unit-agent')
+        stream_mock.assert_any_call(echo_output=sys.stderr, default_stream_name='stderr',
+                                    watcher_name='unit-agent')
+        write_mock = stream_mock.return_value.write
+        write_mock.assert_any_call('stdout_out1')
+        write_mock.assert_any_call('stderr_out1')
 
 
 class LoadAppYamlTest(TestCase):
