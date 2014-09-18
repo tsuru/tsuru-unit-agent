@@ -44,7 +44,7 @@ class TestMain(unittest.TestCase):
         load_yaml_mock = tasks_mock.load_app_yaml
         load_yaml_mock.return_value = {'hooks': {'build': ['cmd_1', 'cmd_2']}}
         post_app_yaml_mock = client_mock.return_value.post_app_yaml
-        run_hooks_mock = tasks_mock.run_hooks
+        run_build_hooks_mock = tasks_mock.run_build_hooks
         main()
         call_count = len(client_mock.mock_calls) + len(tasks_mock.mock_calls)
         self.assertEqual(call_count, 7)
@@ -54,7 +54,7 @@ class TestMain(unittest.TestCase):
         exec_script_mock.assert_called_once_with('mycmd')
         load_yaml_mock.assert_called_once()
         post_app_yaml_mock.assert_called_once_with('app1', load_yaml_mock.return_value)
-        run_hooks_mock.assert_called_once_with(load_yaml_mock.return_value)
+        run_build_hooks_mock.assert_called_once_with(load_yaml_mock.return_value)
 
     @mock.patch('sys.argv', ['', 'http://localhost', 'token', 'app1', 'mycmd', 'run'])
     @mock.patch('tsuru_unit_agent.main.tasks')

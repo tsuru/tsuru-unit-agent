@@ -6,7 +6,7 @@ import sys
 from tsuru_unit_agent.tasks import (
     execute_start_script,
     save_apprc_file,
-    run_hooks,
+    run_build_hooks,
     load_app_yaml,
     run_restart_hooks,
 )
@@ -63,7 +63,7 @@ class RunHooksTest(TestCase):
         wait_mock = popen_call.return_value.wait
         wait_mock.return_value = 0
         data = {"hooks": {"build": ["ble"]}}
-        run_hooks(data)
+        run_build_hooks(data)
         self.assertEqual(popen_call.call_args[0][0], 'ble')
         self.assertEqual(popen_call.call_args[1]['shell'], True)
         self.assertEqual(popen_call.call_args[1]['cwd'], '/')
@@ -78,7 +78,7 @@ class RunHooksTest(TestCase):
         wait_mock.return_value = 0
         exists_mock.return_value = True
         data = {"hooks": {"build": ["ble"]}}
-        run_hooks(data)
+        run_build_hooks(data)
         self.assertEqual(popen_call.call_args[0][0], 'ble')
         self.assertEqual(popen_call.call_args[1]['shell'], True)
         self.assertEqual(popen_call.call_args[1]['cwd'], '/home/application/current')
@@ -93,7 +93,7 @@ class RunHooksTest(TestCase):
         wait_mock = popen_call.return_value.wait
         wait_mock.return_value = 5
         data = {"hooks": {"build": ["ble"]}}
-        run_hooks(data)
+        run_build_hooks(data)
         self.assertEqual(popen_call.call_args[0][0], 'ble')
         self.assertEqual(popen_call.call_args[1]['shell'], True)
         self.assertEqual(popen_call.call_args[1]['cwd'], '/')
@@ -104,16 +104,16 @@ class RunHooksTest(TestCase):
     @mock.patch("subprocess.Popen")
     def test_execute_commands_hooks_empty(self, subprocess_call):
         data = {}
-        run_hooks(data)
+        run_build_hooks(data)
         subprocess_call.assert_not_called()
         data = {"hooks": None}
-        run_hooks(data)
+        run_build_hooks(data)
         subprocess_call.assert_not_called()
         data = {"hooks": {"build": None}}
-        run_hooks(data)
+        run_build_hooks(data)
         subprocess_call.assert_not_called()
         data = {"hooks": {"build": []}}
-        run_hooks(data)
+        run_build_hooks(data)
         subprocess_call.assert_not_called()
 
 

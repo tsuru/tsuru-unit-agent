@@ -22,7 +22,7 @@ def deploy_action(args):
     client = run_action(args, run_hooks=False)
     yaml_data = tasks.load_app_yaml()
     client.post_app_yaml(args.app_name, yaml_data)
-    tasks.run_hooks(yaml_data)
+    tasks.run_build_hooks(yaml_data)
 
 
 actions = {

@@ -51,7 +51,7 @@ def execute_start_script(start_cmd):
     exec_with_envs([start_cmd], with_shell=True)
 
 
-def run_hooks(app_data):
+def run_build_hooks(app_data):
     commands = (app_data.get('hooks') or {}).get('build') or []
     exec_with_envs(commands, with_shell=True)
 
