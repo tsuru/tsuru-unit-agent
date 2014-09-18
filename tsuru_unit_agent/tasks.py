@@ -4,35 +4,41 @@ import os
 import yaml
 import sys
 import os.path
-
 from datetime import datetime
 
+from tsuru_unit_agent.stream import Stream
 
-def exec_with_envs(commands, tsuru_envs, with_shell=False, working_dir="/home/application/current"):
-    envs = {env['name']: env['value'] for env in tsuru_envs}
-    envs.update(os.environ)
+
+def exec_with_envs(commands, with_shell=False, working_dir="/home/application/current"):
     if not os.path.exists(working_dir):
         working_dir = "/"
     for command in commands:
-        status = subprocess.Popen(command, shell=with_shell, cwd=working_dir, env=envs).wait()
+        stdout = Stream(echo_output=sys.stdout,
+                        default_stream_name='stdout',
+                        watcher_name='unit-agent')
+        stderr = Stream(echo_output=sys.stderr,
+                        default_stream_name='stderr',
+                        watcher_name='unit-agent')
+        status = subprocess.Popen(command, shell=with_shell, cwd=working_dir, env=os.environ,
+                                  stdout=stdout, stderr=stderr).wait()
         if status != 0:
             sys.exit(status)
 
 
-def execute_start_script(start_cmd, tsuru_envs):
-    exec_with_envs([start_cmd], tsuru_envs, with_shell=True)
+def execute_start_script(start_cmd):
+    exec_with_envs([start_cmd], with_shell=True)
 
 
-def run_hooks(app_data, tsuru_envs):
+def run_hooks(app_data):
     commands = (app_data.get('hooks') or {}).get('build') or []
-    exec_with_envs(commands, tsuru_envs, with_shell=True)
+    exec_with_envs(commands, with_shell=True)
 
 
-def run_restart_hooks(position, app_data, tsuru_envs):
+def run_restart_hooks(position, app_data):
     restart_hook = (app_data.get('hooks') or {}).get('restart') or {}
     commands = restart_hook.get('{}-each'.format(position)) or []
     commands += restart_hook.get(position) or []
-    exec_with_envs(commands, tsuru_envs, with_shell=True)
+    exec_with_envs(commands, with_shell=True)
 
 
 def load_app_yaml(working_dir="/home/application/current"):

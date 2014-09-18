@@ -18,34 +18,24 @@ class TestTasks(TestCase):
     def test_execute(self, popen_mock):
         wait_mock = popen_mock.return_value.wait
         wait_mock.return_value = 0
-        environs = [
-            {"name": "DATABASE_HOST", "value": "localhost", "public": True},
-            {"name": "DATABASE_USER", "value": "root", "public": True},
-        ]
-        execute_start_script("my_command", environs)
-        popen_mock.assert_called_with("my_command", shell=True, cwd="/", env={
-            "DATABASE_HOST": "localhost",
-            "DATABASE_USER": "root",
-            "env": "var",
-        })
+        execute_start_script("my_command")
+        self.assertEqual(popen_mock.call_args[0][0], 'my_command')
+        self.assertEqual(popen_mock.call_args[1]['shell'], True)
+        self.assertEqual(popen_mock.call_args[1]['cwd'], '/')
+        self.assertDictEqual(popen_mock.call_args[1]['env'], {'env': 'var'})
         wait_mock.assert_called_once()
 
-    @mock.patch("os.environ", {'env': 'var'})
+    @mock.patch("os.environ", {'myenv': 'var'})
     @mock.patch("sys.exit")
     @mock.patch("subprocess.Popen")
     def test_execute_failing(self, popen_mock, exit_mock):
         wait_mock = popen_mock.return_value.wait
         wait_mock.return_value = 10
-        environs = [
-            {"name": "DATABASE_HOST", "value": "localhost", "public": True},
-            {"name": "DATABASE_USER", "value": "root", "public": True},
-        ]
-        execute_start_script("my_command", environs)
-        popen_mock.assert_called_with("my_command", shell=True, cwd="/", env={
-            "DATABASE_HOST": "localhost",
-            "DATABASE_USER": "root",
-            "env": "var"
-        })
+        execute_start_script("my_command")
+        self.assertEqual(popen_mock.call_args[0][0], 'my_command')
+        self.assertEqual(popen_mock.call_args[1]['shell'], True)
+        self.assertEqual(popen_mock.call_args[1]['cwd'], '/')
+        self.assertDictEqual(popen_mock.call_args[1]['env'], {'myenv': 'var'})
         wait_mock.assert_called_once()
         exit_mock.assert_called_once_with(10)
 
@@ -72,12 +62,11 @@ class RunHooksTest(TestCase):
         wait_mock = popen_call.return_value.wait
         wait_mock.return_value = 0
         data = {"hooks": {"build": ["ble"]}}
-        envs = [
-            {"name": "my_key", "value": "my_value"},
-        ]
-        run_hooks(data, envs)
-        popen_call.assert_called_with("ble", shell=True,
-                                      cwd="/", env={'my_key': 'my_value', 'env': 'var'})
+        run_hooks(data)
+        self.assertEqual(popen_call.call_args[0][0], 'ble')
+        self.assertEqual(popen_call.call_args[1]['shell'], True)
+        self.assertEqual(popen_call.call_args[1]['cwd'], '/')
+        self.assertDictEqual(popen_call.call_args[1]['env'], {'env': 'var'})
         wait_mock.assert_called_once()
 
     @mock.patch("os.environ", {})
@@ -88,12 +77,11 @@ class RunHooksTest(TestCase):
         wait_mock.return_value = 0
         exists_mock.return_value = True
         data = {"hooks": {"build": ["ble"]}}
-        envs = [
-            {"name": "my_key", "value": "my_value"},
-        ]
-        run_hooks(data, envs)
-        popen_call.assert_called_with("ble", shell=True,
-                                      cwd="/home/application/current", env={'my_key': 'my_value'})
+        run_hooks(data)
+        self.assertEqual(popen_call.call_args[0][0], 'ble')
+        self.assertEqual(popen_call.call_args[1]['shell'], True)
+        self.assertEqual(popen_call.call_args[1]['cwd'], '/home/application/current')
+        self.assertDictEqual(popen_call.call_args[1]['env'], {})
         wait_mock.assert_called_once()
         exists_mock.assert_called_once_with("/home/application/current")
 
@@ -104,28 +92,27 @@ class RunHooksTest(TestCase):
         wait_mock = popen_call.return_value.wait
         wait_mock.return_value = 5
         data = {"hooks": {"build": ["ble"]}}
-        envs = [
-            {"name": "my_key", "value": "my_value"},
-        ]
-        run_hooks(data, envs)
-        popen_call.assert_called_with("ble", shell=True,
-                                      cwd="/", env={'my_key': 'my_value'})
+        run_hooks(data)
+        self.assertEqual(popen_call.call_args[0][0], 'ble')
+        self.assertEqual(popen_call.call_args[1]['shell'], True)
+        self.assertEqual(popen_call.call_args[1]['cwd'], '/')
+        self.assertDictEqual(popen_call.call_args[1]['env'], {})
         wait_mock.assert_called_once()
         exit_mock.assert_called_once_with(5)
 
     @mock.patch("subprocess.Popen")
     def test_execute_commands_hooks_empty(self, subprocess_call):
         data = {}
-        run_hooks(data, [])
+        run_hooks(data)
         subprocess_call.assert_not_called()
         data = {"hooks": None}
-        run_hooks(data, [])
+        run_hooks(data)
         subprocess_call.assert_not_called()
         data = {"hooks": {"build": None}}
-        run_hooks(data, [])
+        run_hooks(data)
         subprocess_call.assert_not_called()
         data = {"hooks": {"build": []}}
-        run_hooks(data, [])
+        run_hooks(data)
         subprocess_call.assert_not_called()
 
 
@@ -141,22 +128,18 @@ class RunRestartHooksTest(TestCase):
             "after": ["a1"],
             "after-each": ["a2"],
         }}}
-        envs = [
-            {"name": "my_key", "value": "my_value"},
-        ]
-        run_restart_hooks('before', data, envs)
+        run_restart_hooks('before', data)
         self.assertEqual(popen_call.call_count, 2)
-        popen_call.assert_any_call("b1", shell=True,
-                                   cwd="/", env={'my_key': 'my_value', 'env': 'var'})
-        popen_call.assert_any_call("b2", shell=True,
-                                   cwd="/", env={'my_key': 'my_value', 'env': 'var'})
+        self.assertEqual(popen_call.call_args_list[0][0][0], 'b2')
+        self.assertEqual(popen_call.call_args_list[0][1]['shell'], True)
+        self.assertEqual(popen_call.call_args_list[0][1]['cwd'], '/')
+        self.assertDictEqual(popen_call.call_args_list[0][1]['env'], {'env': 'var'})
+        self.assertEqual(popen_call.call_args_list[1][0][0], 'b1')
         wait_mock.assert_called_once()
-        run_restart_hooks('after', data, envs)
+        run_restart_hooks('after', data)
         self.assertEqual(popen_call.call_count, 4)
-        popen_call.assert_any_call("a1", shell=True,
-                                   cwd="/", env={'my_key': 'my_value', 'env': 'var'})
-        popen_call.assert_any_call("a2", shell=True,
-                                   cwd="/", env={'my_key': 'my_value', 'env': 'var'})
+        self.assertEqual(popen_call.call_args_list[3][0][0], 'a1')
+        self.assertEqual(popen_call.call_args_list[2][0][0], 'a2')
 
 
 class LoadAppYamlTest(TestCase):

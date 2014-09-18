@@ -1,6 +1,7 @@
 import unittest
 import mock
 from socket import gethostname
+import os
 
 from tsuru_unit_agent.client import Client
 
@@ -15,14 +16,19 @@ class TestClient(unittest.TestCase):
     def test_register_unit(self, post_mock):
         response = post_mock.return_value
         response.status_code = 200
-        response.json = mock.Mock(side_effect=lambda: {"a": "b"})
+        response.json.return_value = [
+            {'name': 'var1', 'value': 'var2'},
+            {'name': 'var3', 'value': 'var4'},
+        ]
         client = Client("http://localhost", "token")
         envs = client.register_unit(app="myapp")
-        self.assertDictEqual(envs, {"a": "b"})
+        self.assertListEqual(envs, response.json.return_value)
         post_mock.assert_called_with(
             "{}/apps/myapp/units/register".format(client.url),
             data={"hostname": gethostname()},
             headers={"Authorization": "bearer token"})
+        self.assertEqual(os.environ['var1'], 'var2')
+        self.assertEqual(os.environ['var3'], 'var4')
 
     @mock.patch("requests.get")
     @mock.patch("requests.post")
@@ -32,10 +38,13 @@ class TestClient(unittest.TestCase):
         response.json.return_value = None
         get_response = get_mock.return_value
         get_response.status_code = 200
-        get_response.json.return_value = {"a": "b"}
+        get_response.json.return_value = [
+            {'name': 'var1', 'value': 'var2'},
+            {'name': 'var3', 'value': 'var4'},
+        ]
         client = Client("http://localhost", "token")
         envs = client.register_unit(app="myapp")
-        self.assertDictEqual(envs, {"a": "b"})
+        self.assertListEqual(envs, get_response.json.return_value)
         post_mock.assert_called_once_with(
             "{}/apps/myapp/units/register".format(client.url),
             data={"hostname": gethostname()},

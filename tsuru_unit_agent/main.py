@@ -11,18 +11,18 @@ def run_action(args, run_hooks=True):
     tasks.save_apprc_file(envs)
     if run_hooks:
         yaml_data = tasks.load_app_yaml()
-        tasks.run_restart_hooks('before', yaml_data, envs)
-    tasks.execute_start_script(args.start_cmd, envs)
+        tasks.run_restart_hooks('before', yaml_data)
+    tasks.execute_start_script(args.start_cmd)
     if run_hooks:
-        tasks.run_restart_hooks('after', yaml_data, envs)
-    return client, envs
+        tasks.run_restart_hooks('after', yaml_data)
+    return client
 
 
 def deploy_action(args):
-    client, envs = run_action(args, run_hooks=False)
+    client = run_action(args, run_hooks=False)
     yaml_data = tasks.load_app_yaml()
     client.post_app_yaml(args.app_name, yaml_data)
-    tasks.run_hooks(yaml_data, envs)
+    tasks.run_hooks(yaml_data)
 
 
 actions = {

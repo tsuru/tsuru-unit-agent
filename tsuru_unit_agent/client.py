@@ -1,5 +1,6 @@
 from socket import gethostname
 import json
+import os
 
 import requests
 
@@ -21,7 +22,10 @@ class Client(object):
             response = requests.get(
                 "{}/apps/{}/env".format(self.url, app),
                 **params)
-        return response.json()
+        tsuru_envs = response.json()
+        envs = {env['name']: env['value'] for env in tsuru_envs}
+        os.environ.update(envs)
+        return tsuru_envs
 
     def post_app_yaml(self, app, data):
         response = requests.post(
