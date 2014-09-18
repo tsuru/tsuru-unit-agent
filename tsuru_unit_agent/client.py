@@ -10,10 +10,17 @@ class Client(object):
         self.token = token
 
     def register_unit(self, app):
+        params = {
+            'headers': {"Authorization": "bearer {}".format(self.token)},
+        }
         response = requests.post(
             "{}/apps/{}/units/register".format(self.url, app),
             data={"hostname": gethostname()},
-            headers={"Authorization": "bearer {}".format(self.token)})
+            **params)
+        if response.status_code != 200:
+            response = requests.get(
+                "{}/apps/{}/env".format(self.url, app),
+                **params)
         return response.json()
 
     def post_app_yaml(self, app, data):
