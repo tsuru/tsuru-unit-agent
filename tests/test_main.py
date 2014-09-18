@@ -64,10 +64,16 @@ class TestMain(unittest.TestCase):
         register_mock.return_value = [{'name': 'env1', 'value': 'val1'}]
         save_apprc_mock = tasks_mock.save_apprc_file
         exec_script_mock = tasks_mock.execute_start_script
+        run_restart_hooks_mock = tasks_mock.run_restart_hooks
+        load_yaml_mock = tasks_mock.load_app_yaml
+        load_yaml_mock.return_value = {'hooks': {'build': ['cmd_1', 'cmd_2']}}
         main()
         call_count = len(client_mock.mock_calls) + len(tasks_mock.mock_calls)
-        self.assertEqual(call_count, 4)
+        self.assertEqual(call_count, 7)
         client_mock.assert_called_once_with('http://localhost', 'token')
         register_mock.assert_called_once_with('app1')
         save_apprc_mock.assert_called_once_with(register_mock.return_value)
         exec_script_mock.assert_called_once_with('mycmd', register_mock.return_value)
+        load_yaml_mock.assert_called_once()
+        run_restart_hooks_mock.assert_any_call('before', load_yaml_mock.return_value, register_mock.return_value)
+        run_restart_hooks_mock.assert_any_call('after', load_yaml_mock.return_value, register_mock.return_value)

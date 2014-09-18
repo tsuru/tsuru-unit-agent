@@ -28,6 +28,13 @@ def run_hooks(app_data, tsuru_envs):
     exec_with_envs(commands, tsuru_envs, with_shell=True)
 
 
+def run_restart_hooks(position, app_data, tsuru_envs):
+    restart_hook = (app_data.get('hooks') or {}).get('restart') or {}
+    commands = restart_hook.get('{}-each'.format(position)) or []
+    commands += restart_hook.get(position) or []
+    exec_with_envs(commands, tsuru_envs, with_shell=True)
+
+
 def load_app_yaml(working_dir="/home/application/current"):
     files_name = ["tsuru.yaml", "tsuru.yml", "app.yaml", "app.yml"]
     for file_name in files_name:

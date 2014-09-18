@@ -2,7 +2,13 @@ from unittest import TestCase
 import mock
 import os
 
-from tsuru_unit_agent.tasks import execute_start_script, save_apprc_file, run_hooks, load_app_yaml
+from tsuru_unit_agent.tasks import (
+    execute_start_script,
+    save_apprc_file,
+    run_hooks,
+    load_app_yaml,
+    run_restart_hooks,
+)
 
 
 class TestTasks(TestCase):
@@ -121,6 +127,36 @@ class RunHooksTest(TestCase):
         data = {"hooks": {"build": []}}
         run_hooks(data, [])
         subprocess_call.assert_not_called()
+
+
+class RunRestartHooksTest(TestCase):
+    @mock.patch("os.environ", {'env': 'var'})
+    @mock.patch("subprocess.Popen")
+    def test_run_restart_hooks(self, popen_call):
+        wait_mock = popen_call.return_value.wait
+        wait_mock.return_value = 0
+        data = {"hooks": {"restart": {
+            "before": ["b1"],
+            "before-each": ["b2"],
+            "after": ["a1"],
+            "after-each": ["a2"],
+        }}}
+        envs = [
+            {"name": "my_key", "value": "my_value"},
+        ]
+        run_restart_hooks('before', data, envs)
+        self.assertEqual(popen_call.call_count, 2)
+        popen_call.assert_any_call("b1", shell=True,
+                                   cwd="/", env={'my_key': 'my_value', 'env': 'var'})
+        popen_call.assert_any_call("b2", shell=True,
+                                   cwd="/", env={'my_key': 'my_value', 'env': 'var'})
+        wait_mock.assert_called_once()
+        run_restart_hooks('after', data, envs)
+        self.assertEqual(popen_call.call_count, 4)
+        popen_call.assert_any_call("a1", shell=True,
+                                   cwd="/", env={'my_key': 'my_value', 'env': 'var'})
+        popen_call.assert_any_call("a2", shell=True,
+                                   cwd="/", env={'my_key': 'my_value', 'env': 'var'})
 
 
 class LoadAppYamlTest(TestCase):
