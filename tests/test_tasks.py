@@ -7,6 +7,7 @@ from tsuru_unit_agent.tasks import execute_start_script, save_apprc_file, run_ho
 
 class TestTasks(TestCase):
 
+    @mock.patch("os.environ", {'env': 'var'})
     @mock.patch("subprocess.Popen")
     def test_execute(self, popen_mock):
         wait_mock = popen_mock.return_value.wait
@@ -19,9 +20,11 @@ class TestTasks(TestCase):
         popen_mock.assert_called_with("my_command", shell=True, cwd="/", env={
             "DATABASE_HOST": "localhost",
             "DATABASE_USER": "root",
+            "env": "var",
         })
         wait_mock.assert_called_once()
 
+    @mock.patch("os.environ", {'env': 'var'})
     @mock.patch("sys.exit")
     @mock.patch("subprocess.Popen")
     def test_execute_failing(self, popen_mock, exit_mock):
@@ -35,6 +38,7 @@ class TestTasks(TestCase):
         popen_mock.assert_called_with("my_command", shell=True, cwd="/", env={
             "DATABASE_HOST": "localhost",
             "DATABASE_USER": "root",
+            "env": "var"
         })
         wait_mock.assert_called_once()
         exit_mock.assert_called_once_with(10)
@@ -56,6 +60,7 @@ class TestTasks(TestCase):
 
 
 class RunHooksTest(TestCase):
+    @mock.patch("os.environ", {'env': 'var'})
     @mock.patch("subprocess.Popen")
     def test_execute_commands(self, popen_call):
         wait_mock = popen_call.return_value.wait
@@ -66,9 +71,10 @@ class RunHooksTest(TestCase):
         ]
         run_hooks(data, envs)
         popen_call.assert_called_with("ble", shell=True,
-                                      cwd="/", env={'my_key': 'my_value'})
+                                      cwd="/", env={'my_key': 'my_value', 'env': 'var'})
         wait_mock.assert_called_once()
 
+    @mock.patch("os.environ", {})
     @mock.patch("os.path.exists")
     @mock.patch("subprocess.Popen")
     def test_execute_commands_default_cwd_exists(self, popen_call, exists_mock):
@@ -85,6 +91,7 @@ class RunHooksTest(TestCase):
         wait_mock.assert_called_once()
         exists_mock.assert_called_once_with("/home/application/current")
 
+    @mock.patch("os.environ", {})
     @mock.patch("sys.exit")
     @mock.patch("subprocess.Popen")
     def test_execute_failing_commands(self, popen_call, exit_mock):
