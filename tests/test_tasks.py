@@ -195,4 +195,4 @@ hooks:
 
     def test_load_without_app_files(self):
         data = load_app_yaml(self.working_dir)
-        self.assertEqual(data, None)
+        self.assertDictEqual(data, {})

@@ -71,7 +71,7 @@ def load_app_yaml(working_dir="/home/application/current"):
                 return yaml.load(f.read())
         except IOError:
             pass
-    return None
+    return {}
 
 
 def save_apprc_file(environs):
