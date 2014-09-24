@@ -196,3 +196,10 @@ hooks:
     def test_load_without_app_files(self):
         data = load_app_yaml(self.working_dir)
         self.assertDictEqual(data, {})
+
+    def test_load_with_empty_yaml(self):
+        with open(os.path.join(self.working_dir, "tsuru.yaml"), "w") as f:
+            f.write("")
+        data = load_app_yaml(self.working_dir)
+        self.assertDictEqual(data, {})
+        os.remove(os.path.join(self.working_dir, "tsuru.yaml"))

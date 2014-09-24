@@ -68,7 +68,7 @@ def load_app_yaml(working_dir="/home/application/current"):
     for file_name in files_name:
         try:
             with io.open(os.path.join(working_dir, file_name)) as f:
-                return yaml.load(f.read())
+                return yaml.load(f.read()) or {}
         except IOError:
             pass
     return {}
