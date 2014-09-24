@@ -1,5 +1,6 @@
 import subprocess
 import io
+import codecs
 import os
 import yaml
 import sys
@@ -67,7 +68,8 @@ def load_app_yaml(working_dir="/home/application/current"):
     files_name = ["tsuru.yaml", "tsuru.yml", "app.yaml", "app.yml"]
     for file_name in files_name:
         try:
-            with io.open(os.path.join(working_dir, file_name)) as f:
+            fullpath = os.path.join(working_dir, file_name)
+            with codecs.open(fullpath, 'r', encoding='utf-8', errors='ignore') as f:
                 return yaml.load(f.read()) or {}
         except IOError:
             pass

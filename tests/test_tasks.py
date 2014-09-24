@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from unittest import TestCase
 import mock
 import os
@@ -203,3 +205,9 @@ hooks:
         data = load_app_yaml(self.working_dir)
         self.assertDictEqual(data, {})
         os.remove(os.path.join(self.working_dir, "tsuru.yaml"))
+
+    def test_load_yaml_encoding(self):
+        data = load_app_yaml(os.path.join(self.working_dir, "fixtures/iso88591"))
+        self.assertDictEqual(data, {"key": "x"})
+        data = load_app_yaml(os.path.join(self.working_dir, "fixtures/utf-8"))
+        self.assertDictEqual(data, {"key": u"áéíãôüx"})
