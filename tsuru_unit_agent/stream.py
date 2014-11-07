@@ -30,6 +30,7 @@ class Stream(object):
         self.echo = kwargs.get("echo_output")
         self.default_stream_name = kwargs.get("default_stream_name", "stdout")
         self.hostname = gethostname()
+        self.session = requests.Session()
 
     def write(self, message):
         self({'data': message})
@@ -60,9 +61,9 @@ class Stream(object):
                                                             self.watcher_name,
                                                             self.hostname)
         try:
-            requests.post(url, data=json.dumps(messages),
-                          headers={"Authorization": "bearer " + token},
-                          timeout=self.timeout)
+            self.session.post(url, data=json.dumps(messages),
+                              headers={"Authorization": "bearer " + token},
+                              timeout=self.timeout)
         except:
             pass
 

@@ -20,6 +20,7 @@ from tsuru_unit_agent.stream import Stream
     'TSURU_SYSLOG_SOCKET': "udp",
 })
 class StreamTestCase(unittest.TestCase):
+
     @mock.patch("tsuru_unit_agent.stream.gethostname")
     def setUp(self, gethostname):
         gethostname.return_value = "myhost"
@@ -37,13 +38,13 @@ class StreamTestCase(unittest.TestCase):
             'name': 'stdout'
         }
         self.stream = Stream(watcher_name='mywatcher')
+        self.stream.session = self.session = mock.Mock()
 
     def test_should_have_the_close_method(self):
         self.assertTrue(hasattr(Stream, "close"))
 
-    @mock.patch("requests.post")
-    def test_should_send_log_to_tsuru(self, post):
-        post.return_value = mock.Mock(status_code=200)
+    def test_should_send_log_to_tsuru(self):
+        self.session.post.return_value = mock.Mock(status_code=200)
         self.stream(self.data['stdout'])
         (appname, host, token, syslog_server,
          syslog_port, syslog_facility, syslog_socket) = self.stream._load_envs()
@@ -51,9 +52,10 @@ class StreamTestCase(unittest.TestCase):
                                                                      appname)
         expected_msg = "Starting gunicorn 0.15.0\n"
         expected_data = json.dumps([expected_msg])
-        post.assert_called_with(url, data=expected_data,
-                                headers={"Authorization": "bearer " + token},
-                                timeout=2)
+        self.session.post.assert_called_with(url, data=expected_data,
+                                             headers={"Authorization":
+                                                      "bearer " + token},
+                                             timeout=2)
 
     @mock.patch("logging.getLogger")
     @mock.patch('logging.handlers.SysLogHandler')
@@ -94,11 +96,11 @@ class StreamTestCase(unittest.TestCase):
         self.assertEqual(len(my_logger.handlers), 1)
 
     @mock.patch("tsuru_unit_agent.stream.gethostname")
-    @mock.patch("requests.post")
-    def test_timeout_is_configurable(self, post, gethostname):
-        post.return_value = mock.Mock(status_code=200)
+    def test_timeout_is_configurable(self, gethostname):
+        self.session.post.return_value = mock.Mock(status_code=200)
         gethostname.return_value = "myhost"
         stream = Stream(watcher_name="watcher", timeout=10)
+        stream.session = self.session
         stream(self.data['stdout'])
         (appname, host, token, syslog_server,
          syslog_port, syslog_facility, syslog_socket) = self.stream._load_envs()
@@ -106,13 +108,13 @@ class StreamTestCase(unittest.TestCase):
                                                                    appname)
         expected_msg = "Starting gunicorn 0.15.0\n"
         expected_data = json.dumps([expected_msg])
-        post.assert_called_with(url, data=expected_data,
-                                headers={"Authorization": "bearer " + token},
-                                timeout=10)
+        self.session.post.assert_called_with(url, data=expected_data,
+                                             headers={"Authorization":
+                                                      "bearer " + token},
+                                             timeout=10)
 
-    @mock.patch("requests.post")
-    def test_should_ignore_errors_in_post_call(self, post):
-        post.side_effect = Exception()
+    def test_should_ignore_errors_in_post_call(self):
+        self.session.post.side_effect = Exception()
         self.stream(self.data['stdout'])
 
     @mock.patch("os.environ", {})
