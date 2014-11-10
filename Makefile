@@ -6,6 +6,5 @@ deps:
 	@pip install -r test-requirements.txt
 
 test: clean deps
-	@echo "Running tests"
-	@py.test -s .
+	@python -m unittest discover
 	@flake8 --max-line-length=115 .
