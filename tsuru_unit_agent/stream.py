@@ -6,12 +6,13 @@ import json
 import logging
 import Queue
 import re
+import socket
 import os
 import threading
 
 from datetime import datetime
-from logging.handlers import SysLogHandler
-from socket import SOCK_DGRAM, SOCK_STREAM, gethostname
+from logging import handlers
+from socket import gethostname
 
 import requests
 
@@ -75,19 +76,19 @@ class Stream(object):
                                                             self.hostname)
         self.queue.put_nowait(LogEntry(url, self.timeout, messages))
 
-    def _log_syslog(self, messages, appname, host, port, facility, socket, stream_name):
-        if socket == 'tcp':
-            socket_type = SOCK_STREAM
+    def _log_syslog(self, messages, appname, host, port, facility, socktype, stream_name):
+        if socktype == 'tcp':
+            socket_type = socket.SOCK_STREAM
         else:
-            socket_type = SOCK_DGRAM
+            socket_type = socket.SOCK_DGRAM
         try:
             date_time = datetime.now().strftime("%b %d %H:%M:%S")\
                                       .lstrip("0").replace(" 0", "  ")
             logger = logging.getLogger(appname)
             logger.handlers = []
             logger.setLevel(logging.INFO)
-            syslog = SysLogHandler(address=(host, int(port)),
-                                   facility=facility, socktype=socket_type)
+            syslog = handlers.SysLogHandler(address=(host, int(port)),
+                                            facility=facility, socktype=socket_type)
             formatter = logging.Formatter('{0} {1} %(name)s:\
                                            %(message)s'.format(date_time,
                                                                self.hostname))
