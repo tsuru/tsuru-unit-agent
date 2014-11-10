@@ -3,14 +3,17 @@
 # license that can be found in the LICENSE file.
 
 import json
-import re
-import requests
 import logging
+import Queue
+import re
 import os
+import threading
 
+from datetime import datetime
 from logging.handlers import SysLogHandler
 from socket import SOCK_DGRAM, SOCK_STREAM, gethostname
-from datetime import datetime
+
+import requests
 
 
 def extract_message(msg):
@@ -30,7 +33,17 @@ class Stream(object):
         self.echo = kwargs.get("echo_output")
         self.default_stream_name = kwargs.get("default_stream_name", "stdout")
         self.hostname = gethostname()
-        self.session = requests.Session()
+        self.start_writer()
+
+    def start_writer(self):
+        _, _, token, _, _, _, _ = self._load_envs()
+        session = requests.Session()
+        if token:
+            session.headers.update({"Authorization": "bearer " + token})
+        maxsize = int(os.environ.get("LOG_MAX_QUEUE_SIZE", 1000))
+        self.queue = Queue.Queue(maxsize=maxsize)
+        self.writer = TsuruLogWriter(session, self.queue)
+        self.writer.start()
 
     def write(self, message):
         self({'data': message})
@@ -60,12 +73,7 @@ class Stream(object):
         url = "{0}/apps/{1}/log?source={2}&unit={3}".format(host, appname,
                                                             self.watcher_name,
                                                             self.hostname)
-        try:
-            self.session.post(url, data=json.dumps(messages),
-                              headers={"Authorization": "bearer " + token},
-                              timeout=self.timeout)
-        except:
-            pass
+        self.queue.put_nowait(LogEntry(url, self.timeout, messages))
 
     def _log_syslog(self, messages, appname, host, port, facility, socket, stream_name):
         if socket == 'tcp':
@@ -119,3 +127,31 @@ class Stream(object):
             else:
                 self._buffer = line
         return result
+
+
+class TsuruLogWriter(threading.Thread):
+
+    def __init__(self, session, queue, *args, **kwargs):
+        super(TsuruLogWriter, self).__init__(*args, **kwargs)
+        self.queue = queue
+        self.session = session
+
+    def run(self):
+        while True:
+            try:
+                entry = self.queue.get()
+                try:
+                    self.session.post(entry.url, data=json.dumps(entry.messages),
+                                      timeout=entry.timeout)
+                finally:
+                    self.queue.task_done()
+            except:
+                pass
+
+
+class LogEntry(object):
+
+    def __init__(self, url, timeout, messages):
+        self.url = url
+        self.timeout = timeout
+        self.messages = messages

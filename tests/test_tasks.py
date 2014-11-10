@@ -59,6 +59,7 @@ class TestTasks(TestCase):
 
 
 class RunHooksTest(TestCase):
+
     @mock.patch("os.environ", {'env': 'var'})
     @mock.patch("subprocess.Popen")
     def test_execute_commands(self, popen_call):
@@ -120,9 +121,11 @@ class RunHooksTest(TestCase):
 
 
 class RunRestartHooksTest(TestCase):
+
+    @mock.patch("tsuru_unit_agent.tasks.Stream")
     @mock.patch("os.environ", {'env': 'var'})
     @mock.patch("subprocess.Popen")
-    def test_run_restart_hooks(self, popen_call):
+    def test_run_restart_hooks(self, popen_call, Stream):
         popen_call.return_value.stdout.readline.return_value = ''
         popen_call.return_value.stderr.readline.return_value = ''
         wait_mock = popen_call.return_value.wait
@@ -176,6 +179,7 @@ class RunRestartHooksTest(TestCase):
 
 
 class LoadAppYamlTest(TestCase):
+
     def setUp(self):
         self.working_dir = os.path.dirname(__file__)
         self.data = '''

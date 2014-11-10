@@ -4,8 +4,8 @@
 
 import unittest
 import mock
-import json
 import logging
+import os
 
 from tsuru_unit_agent.stream import Stream
 
@@ -22,7 +22,9 @@ from tsuru_unit_agent.stream import Stream
 class StreamTestCase(unittest.TestCase):
 
     @mock.patch("tsuru_unit_agent.stream.gethostname")
-    def setUp(self, gethostname):
+    @mock.patch("tsuru_unit_agent.stream.TsuruLogWriter")
+    def setUp(self, TsuruLogWriter, gethostname):
+        TsuruLogWriter.return_value = log_writer = mock.Mock()
         gethostname.return_value = "myhost"
         l_out = '2012-11-06 17:13:55 [12019] [INFO] Starting gunicorn 0.15.0\n'
         l_err = '2012-11-06 17:13:55 [12019] [ERROR] Error starting gunicorn\n'
@@ -37,25 +39,28 @@ class StreamTestCase(unittest.TestCase):
             'data': l_out,
             'name': 'stdout'
         }
+        os.environ.setdefault("TSURU_APP_TOKEN", "secret123")
         self.stream = Stream(watcher_name='mywatcher')
-        self.stream.session = self.session = mock.Mock()
+        TsuruLogWriter.assert_called_with(mock.ANY, self.stream.queue)
+        log_writer.start.assert_called_once()
+
+    def tearDown(self):
+        self.stream.writer.stop()
 
     def test_should_have_the_close_method(self):
         self.assertTrue(hasattr(Stream, "close"))
 
     def test_should_send_log_to_tsuru(self):
-        self.session.post.return_value = mock.Mock(status_code=200)
         self.stream(self.data['stdout'])
         (appname, host, token, syslog_server,
          syslog_port, syslog_facility, syslog_socket) = self.stream._load_envs()
         url = "{0}/apps/{1}/log?source=mywatcher&unit=myhost".format(host,
                                                                      appname)
         expected_msg = "Starting gunicorn 0.15.0\n"
-        expected_data = json.dumps([expected_msg])
-        self.session.post.assert_called_with(url, data=expected_data,
-                                             headers={"Authorization":
-                                                      "bearer " + token},
-                                             timeout=2)
+        entry = self.stream.queue.get()
+        self.assertEqual(url, entry.url)
+        self.assertEqual(2, entry.timeout)
+        self.assertEqual([expected_msg], entry.messages)
 
     @mock.patch("logging.getLogger")
     @mock.patch('logging.handlers.SysLogHandler')
@@ -96,29 +101,25 @@ class StreamTestCase(unittest.TestCase):
         self.assertEqual(len(my_logger.handlers), 1)
 
     @mock.patch("tsuru_unit_agent.stream.gethostname")
-    def test_timeout_is_configurable(self, gethostname):
-        self.session.post.return_value = mock.Mock(status_code=200)
+    @mock.patch("tsuru_unit_agent.stream.TsuruLogWriter")
+    def test_timeout_is_configurable(self, TsuruLogWriter, gethostname):
+        TsuruLogWriter.return_value = mock.Mock()
         gethostname.return_value = "myhost"
         stream = Stream(watcher_name="watcher", timeout=10)
-        stream.session = self.session
         stream(self.data['stdout'])
         (appname, host, token, syslog_server,
          syslog_port, syslog_facility, syslog_socket) = self.stream._load_envs()
         url = "{0}/apps/{1}/log?source=watcher&unit=myhost".format(host,
                                                                    appname)
         expected_msg = "Starting gunicorn 0.15.0\n"
-        expected_data = json.dumps([expected_msg])
-        self.session.post.assert_called_with(url, data=expected_data,
-                                             headers={"Authorization":
-                                                      "bearer " + token},
-                                             timeout=10)
+        entry = stream.queue.get(timeout=2)
+        self.assertEqual(url, entry.url)
+        self.assertEqual(10, entry.timeout)
+        self.assertEqual([expected_msg], entry.messages)
 
-    def test_should_ignore_errors_in_post_call(self):
-        self.session.post.side_effect = Exception()
-        self.stream(self.data['stdout'])
-
+    @mock.patch("tsuru_unit_agent.stream.TsuruLogWriter")
     @mock.patch("os.environ", {})
-    def test_should_slience_errors_when_envs_does_not_exist(self):
+    def test_should_slience_errors_when_envs_does_not_exist(self, TsuruLogWriter):
         try:
             stream = Stream()
             stream(self.data['stdout'])
@@ -128,7 +129,6 @@ class StreamTestCase(unittest.TestCase):
             self.fail(msg)
 
     def test_get_messagess_no_buffering(self):
-        stream = Stream()
         msg = "2012-11-06 18:30:10 [13887] [INFO] Listening at: " \
               "http://127.0.0.1:8000 (13887)\n2012-11-06 18:30:10 [13887] " \
               "[INFO] Using worker: sync\n2012-11-06 18:30:10 [13890] " \
@@ -142,12 +142,11 @@ class StreamTestCase(unittest.TestCase):
             "Exception in worker process:\n",
             "Traceback (most recent call last):\n",
         ]
-        messages = stream._get_messages(msg)
-        self.assertEqual("", stream._buffer)
+        messages = self.stream._get_messages(msg)
+        self.assertEqual("", self.stream._buffer)
         self.assertEqual(expected, messages)
 
     def test_get_messagess_buffering(self):
-        stream = Stream()
         msg = "2012-11-06 18:30:10 [13887] [INFO] Listening at: " \
               "http://127.0.0.1:8000 (13887)\n2012-11-06 18:30:10 [13887] " \
               "[INFO] Using worker: sync\n2012-11-06 18:30:10 [13890] " \
@@ -160,12 +159,11 @@ class StreamTestCase(unittest.TestCase):
             "Booting worker with pid: 13890\n",
             "Exception in worker process:\n",
         ]
-        messages = stream._get_messages(msg)
-        self.assertEqual("Traceback (most recent call last):", stream._buffer)
+        messages = self.stream._get_messages(msg)
+        self.assertEqual("Traceback (most recent call last):", self.stream._buffer)
         self.assertEqual(expected, messages)
 
     def test_get_messagess_buffered(self):
-        stream = Stream()
         msg1 = "2012-11-06 18:30:10 [13887] [INFO] Listening at: " \
                "http://127.0.0.1:8000 (13887)\n2012-11-06 18:30:10 [13887] "
         msg2 = "[INFO] Using worker: sync\n2012-11-06 18:30:10 "
@@ -179,22 +177,20 @@ class StreamTestCase(unittest.TestCase):
             "Exception in worker process:\n",
             "Traceback (most recent call last):\n",
         ]
-        self.assertEqual(expected[:1], stream._get_messages(msg1))
-        self.assertEqual(expected[1:2], stream._get_messages(msg2))
-        self.assertEqual(expected[2:], stream._get_messages(msg3))
+        self.assertEqual(expected[:1], self.stream._get_messages(msg1))
+        self.assertEqual(expected[1:2], self.stream._get_messages(msg2))
+        self.assertEqual(expected[2:], self.stream._get_messages(msg3))
 
     def test_get_messagess_full_buffer(self):
-        stream = Stream()
-        stream._max_buffer_size = 20
-        stream._buffer = 13 * "a"
+        self.stream._max_buffer_size = 20
+        self.stream._buffer = 13 * "a"
         msg = "2012-11-06 18:30:10 [13887] [INFO] Listening at: " \
               "http://127.0.0.1:8000 (13887)"
-        expected = [stream._buffer +
+        expected = [self.stream._buffer +
                     "Listening at: http://127.0.0.1:8000 (13887)"]
-        self.assertEqual(expected, stream._get_messages(msg))
+        self.assertEqual(expected, self.stream._get_messages(msg))
 
     def test_get_messages_buffered_multiple_times(self):
-        stream = Stream()
         msg1 = "2012-11-06 18:30:10 [13887] [INFO] Listening at: " \
                "http://127.0.0.1:8000 (13887)\n2012-11-06 18:30:10 [13887] "
         msg2 = "[INFO] Using worker: sync\n2012-11-06 18:30:10 "
@@ -211,25 +207,24 @@ class StreamTestCase(unittest.TestCase):
             "Traceback (most recent call last):\n",
             "Booting another worker with pid: 13891\n",
         ]
-        self.assertEqual(expected[:1], stream._get_messages(msg1))
-        self.assertEqual(expected[1:2], stream._get_messages(msg2))
-        self.assertEqual(expected[2:4], stream._get_messages(msg3))
-        self.assertEqual(expected[4:], stream._get_messages(msg4))
+        self.assertEqual(expected[:1], self.stream._get_messages(msg1))
+        self.assertEqual(expected[1:2], self.stream._get_messages(msg2))
+        self.assertEqual(expected[2:4], self.stream._get_messages(msg3))
+        self.assertEqual(expected[4:], self.stream._get_messages(msg4))
 
     def test_get_messages_sequential_bufferings(self):
-        stream = Stream()
         msg1 = "2012-11-06 18:30:10 [13887] [INFO] Listening at: "
         msg2 = "http://127.0.0.1:8000 "
         msg3 = "(13887)\n"
-        self.assertEqual([], stream._get_messages(msg1))
-        self.assertEqual([], stream._get_messages(msg2))
+        self.assertEqual([], self.stream._get_messages(msg1))
+        self.assertEqual([], self.stream._get_messages(msg2))
         self.assertEqual(["Listening at: http://127.0.0.1:8000 (13887)\n"],
-                         stream._get_messages(msg3))
+                         self.stream._get_messages(msg3))
 
     def test_default_max_buffer_size(self):
-        stream = Stream()
-        self.assertEqual(10240, stream._max_buffer_size)
+        self.assertEqual(10240, self.stream._max_buffer_size)
 
-    def test_max_buffer_size_is_configurable(self):
+    @mock.patch("tsuru_unit_agent.stream.TsuruLogWriter")
+    def test_max_buffer_size_is_configurable(self, TsuruLogWriter):
         stream = Stream(max_buffer_size=500)
         self.assertEqual(500, stream._max_buffer_size)
