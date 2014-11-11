@@ -6,18 +6,19 @@ import unittest
 import mock
 import logging
 import os
+import socket
 
 from tsuru_unit_agent.stream import Stream
 
 
 @mock.patch("os.environ", {
-    'TSURU_APPNAME': "appname1",
-    'TSURU_HOST': "host1",
-    'TSURU_APP_TOKEN': "secret123",
-    'TSURU_SYSLOG_SERVER': "host2",
-    'TSURU_SYSLOG_PORT': "514",
-    'TSURU_SYSLOG_FACILITY': "LOCAL0",
-    'TSURU_SYSLOG_SOCKET': "udp",
+    "TSURU_APPNAME": "appname1",
+    "TSURU_HOST": "host1",
+    "TSURU_APP_TOKEN": "secret123",
+    "TSURU_SYSLOG_SERVER": "host2",
+    "TSURU_SYSLOG_PORT": "514",
+    "TSURU_SYSLOG_FACILITY": "LOCAL0",
+    "TSURU_SYSLOG_SOCKET": "udp",
 })
 class StreamTestCase(unittest.TestCase):
 
@@ -26,21 +27,21 @@ class StreamTestCase(unittest.TestCase):
     def setUp(self, TsuruLogWriter, gethostname):
         TsuruLogWriter.return_value = log_writer = mock.Mock()
         gethostname.return_value = "myhost"
-        l_out = '2012-11-06 17:13:55 [12019] [INFO] Starting gunicorn 0.15.0\n'
-        l_err = '2012-11-06 17:13:55 [12019] [ERROR] Error starting gunicorn\n'
+        l_out = "2012-11-06 17:13:55 [12019] [INFO] Starting gunicorn 0.15.0\n"
+        l_err = "2012-11-06 17:13:55 [12019] [ERROR] Error starting gunicorn\n"
         self.data = {}
-        self.data['stderr'] = {
-            'pid': 12018,
-            'data': l_err,
-            'name': 'stderr'
+        self.data["stderr"] = {
+            "pid": 12018,
+            "data": l_err,
+            "name": "stderr"
         }
-        self.data['stdout'] = {
-            'pid': 12018,
-            'data': l_out,
-            'name': 'stdout'
+        self.data["stdout"] = {
+            "pid": 12018,
+            "data": l_out,
+            "name": "stdout"
         }
         os.environ.setdefault("TSURU_APP_TOKEN", "secret123")
-        self.stream = Stream(watcher_name='mywatcher')
+        self.stream = Stream(watcher_name="mywatcher")
         TsuruLogWriter.assert_called_with(mock.ANY, self.stream.queue)
         log_writer.start.assert_called_once()
 
@@ -51,7 +52,7 @@ class StreamTestCase(unittest.TestCase):
         self.assertTrue(hasattr(Stream, "close"))
 
     def test_should_send_log_to_tsuru(self):
-        self.stream(self.data['stdout'])
+        self.stream(self.data["stdout"])
         (appname, host, token, syslog_server,
          syslog_port, syslog_facility, syslog_socket) = self.stream._load_envs()
         url = "{0}/apps/{1}/log?source=mywatcher&unit=myhost".format(host,
@@ -63,9 +64,9 @@ class StreamTestCase(unittest.TestCase):
         self.assertEqual([expected_msg], entry.messages)
 
     @mock.patch("logging.getLogger")
-    @mock.patch('logging.handlers.SysLogHandler')
+    @mock.patch("logging.handlers.SysLogHandler")
     def test_should_send_log_to_syslog_as_info(self, s_handler, logger):
-        self.stream(self.data['stdout'])
+        self.stream(self.data["stdout"])
         (appname, host, token, syslog_server,
          syslog_port, syslog_facility, syslog_socket) = self.stream._load_envs()
         my_logger = logger(appname)
@@ -77,24 +78,24 @@ class StreamTestCase(unittest.TestCase):
         my_logger.info.assert_called_with(expected_msg)
 
     @mock.patch("logging.getLogger")
-    @mock.patch('logging.handlers.SysLogHandler')
+    @mock.patch("tsuru_unit_agent.syslog.SysLogHandler")
     def test_should_send_log_to_syslog_as_error(self, s_handler, logger):
-        self.stream(self.data['stderr'])
+        s_handler.return_value = syslog = mock.Mock()
+        self.stream(self.data["stderr"])
         (appname, host, token, syslog_server,
          syslog_port, syslog_facility, syslog_socket) = self.stream._load_envs()
         my_logger = logger(appname)
-        log_handler = s_handler(address=(syslog_server, syslog_port),
-                                facility=syslog_facility,
-                                socktype=syslog_socket)
-        expected_msg = "Error starting gunicorn\n"
-        my_logger.addHandler(log_handler)
-        my_logger.error.assert_called_with(expected_msg)
+        s_handler.assert_called_with(address=(syslog_server, int(syslog_port)),
+                                     facility=syslog_facility,
+                                     socktype=socket.SOCK_DGRAM)
+        my_logger.addHandler.assert_called_with(syslog)
+        my_logger.error.assert_called_with("Error starting gunicorn\n")
 
     def test_should_send_log_to_syslog_and_use_one_handler(self):
-        self.stream(self.data['stderr'])
-        self.stream(self.data['stderr'])
-        self.stream(self.data['stderr'])
-        self.stream(self.data['stderr'])
+        self.stream(self.data["stderr"])
+        self.stream(self.data["stderr"])
+        self.stream(self.data["stderr"])
+        self.stream(self.data["stderr"])
         (appname, host, token, syslog_server,
          syslog_port, syslog_facility, syslog_socket) = self.stream._load_envs()
         my_logger = logging.getLogger(appname)
@@ -106,7 +107,7 @@ class StreamTestCase(unittest.TestCase):
         TsuruLogWriter.return_value = mock.Mock()
         gethostname.return_value = "myhost"
         stream = Stream(watcher_name="watcher", timeout=10)
-        stream(self.data['stdout'])
+        stream(self.data["stdout"])
         (appname, host, token, syslog_server,
          syslog_port, syslog_facility, syslog_socket) = self.stream._load_envs()
         url = "{0}/apps/{1}/log?source=watcher&unit=myhost".format(host,
@@ -122,7 +123,7 @@ class StreamTestCase(unittest.TestCase):
     def test_should_slience_errors_when_envs_does_not_exist(self, TsuruLogWriter):
         try:
             stream = Stream()
-            stream(self.data['stdout'])
+            stream(self.data["stdout"])
         except Exception as e:
             msg = "Should not fail when envs does not exist. " \
                   "Exception: {}".format(e)

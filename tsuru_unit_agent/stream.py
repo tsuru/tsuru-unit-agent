@@ -10,11 +10,11 @@ import socket
 import os
 import threading
 
-from datetime import datetime
-from logging import handlers
 from socket import gethostname
 
 import requests
+
+from . import syslog
 
 
 def extract_message(msg):
@@ -76,23 +76,26 @@ class Stream(object):
                                                             self.hostname)
         self.queue.put_nowait(LogEntry(url, self.timeout, messages))
 
+    def _get_syslog(self, host, port, facility, socktype):
+        if not hasattr(self, "_syslog"):
+            if socktype == 'tcp':
+                socket_type = socket.SOCK_STREAM
+            else:
+                socket_type = socket.SOCK_DGRAM
+            self._syslog = syslog.SysLogHandler(address=(host, int(port)),
+                                                facility=facility,
+                                                socktype=socket_type)
+            formatter = logging.Formatter('%(asctime)s {0} %(name)s: %(message)s'.format(self.hostname),
+                                          "%b %d %H:%M:%S")
+            self._syslog.setFormatter(formatter)
+        return self._syslog
+
     def _log_syslog(self, messages, appname, host, port, facility, socktype, stream_name):
-        if socktype == 'tcp':
-            socket_type = socket.SOCK_STREAM
-        else:
-            socket_type = socket.SOCK_DGRAM
         try:
-            date_time = datetime.now().strftime("%b %d %H:%M:%S")\
-                                      .lstrip("0").replace(" 0", "  ")
+            syslog = self._get_syslog(host, port, facility, socktype)
             logger = logging.getLogger(appname)
             logger.handlers = []
             logger.setLevel(logging.INFO)
-            syslog = handlers.SysLogHandler(address=(host, int(port)),
-                                            facility=facility, socktype=socket_type)
-            formatter = logging.Formatter('{0} {1} %(name)s:\
-                                           %(message)s'.format(date_time,
-                                                               self.hostname))
-            syslog.setFormatter(formatter)
             logger.addHandler(syslog)
             for m in messages:
                 if stream_name == 'stdout':
