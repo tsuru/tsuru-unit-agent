@@ -26,7 +26,7 @@ class TestTasks(TestCase):
         self.assertEqual(popen_mock.call_args[1]['shell'], True)
         self.assertEqual(popen_mock.call_args[1]['cwd'], '/')
         self.assertDictEqual(popen_mock.call_args[1]['env'], {'env': 'var'})
-        wait_mock.assert_called_once()
+        wait_mock.assert_called_once_with()
 
     @mock.patch("os.environ", {'myenv': 'var'})
     @mock.patch("sys.exit")
@@ -39,7 +39,7 @@ class TestTasks(TestCase):
         self.assertEqual(popen_mock.call_args[1]['shell'], True)
         self.assertEqual(popen_mock.call_args[1]['cwd'], '/')
         self.assertDictEqual(popen_mock.call_args[1]['env'], {'myenv': 'var'})
-        wait_mock.assert_called_once()
+        wait_mock.assert_called_once_with()
         exit_mock.assert_called_once_with(10)
 
     def test_save_apprc_file(self):
@@ -71,7 +71,7 @@ class RunHooksTest(TestCase):
         self.assertEqual(popen_call.call_args[1]['shell'], True)
         self.assertEqual(popen_call.call_args[1]['cwd'], '/')
         self.assertDictEqual(popen_call.call_args[1]['env'], {'env': 'var'})
-        wait_mock.assert_called_once()
+        wait_mock.assert_called_once_with()
 
     @mock.patch("os.environ", {})
     @mock.patch("os.path.exists")
@@ -86,7 +86,7 @@ class RunHooksTest(TestCase):
         self.assertEqual(popen_call.call_args[1]['shell'], True)
         self.assertEqual(popen_call.call_args[1]['cwd'], '/home/application/current')
         self.assertDictEqual(popen_call.call_args[1]['env'], {})
-        wait_mock.assert_called_once()
+        wait_mock.assert_called_once_with()
         exists_mock.assert_called_once_with("/home/application/current")
 
     @mock.patch("os.environ", {})
@@ -101,7 +101,7 @@ class RunHooksTest(TestCase):
         self.assertEqual(popen_call.call_args[1]['shell'], True)
         self.assertEqual(popen_call.call_args[1]['cwd'], '/')
         self.assertDictEqual(popen_call.call_args[1]['env'], {})
-        wait_mock.assert_called_once()
+        wait_mock.assert_called_once_with()
         exit_mock.assert_called_once_with(5)
 
     @mock.patch("subprocess.Popen")
@@ -143,7 +143,7 @@ class RunRestartHooksTest(TestCase):
         self.assertEqual(popen_call.call_args_list[0][1]['cwd'], '/')
         self.assertDictEqual(popen_call.call_args_list[0][1]['env'], {'env': 'var'})
         self.assertEqual(popen_call.call_args_list[1][0][0], 'b1')
-        wait_mock.assert_called_once()
+        wait_mock.assert_any_call()
         run_restart_hooks('after', data)
         self.assertEqual(popen_call.call_count, 4)
         self.assertEqual(popen_call.call_args_list[3][0][0], 'a1')
@@ -168,7 +168,7 @@ class RunRestartHooksTest(TestCase):
         self.assertEqual(popen_call.call_args_list[0][1]['shell'], True)
         self.assertEqual(popen_call.call_args_list[0][1]['cwd'], '/')
         self.assertDictEqual(popen_call.call_args_list[0][1]['env'], {'env': 'var'})
-        wait_mock.assert_called_once()
+        wait_mock.assert_called_once_with()
         stream_mock.assert_any_call(echo_output=sys.stdout, default_stream_name='stdout',
                                     watcher_name='unit-agent')
         stream_mock.assert_any_call(echo_output=sys.stderr, default_stream_name='stderr',
@@ -176,6 +176,8 @@ class RunRestartHooksTest(TestCase):
         write_mock = stream_mock.return_value.write
         write_mock.assert_any_call('stdout_out1')
         write_mock.assert_any_call('stderr_out1')
+        stream_mock.return_value.flush.assert_any_call()
+        stream_mock.return_value.close.assert_any_call()
 
 
 class LoadAppYamlTest(TestCase):

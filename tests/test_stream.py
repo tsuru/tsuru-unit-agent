@@ -8,7 +8,7 @@ import logging
 import os
 import socket
 
-from tsuru_unit_agent.stream import Stream
+from tsuru_unit_agent.stream import Stream, QUEUE_DONE_MESSAGE
 
 
 @mock.patch("os.environ", {
@@ -50,6 +50,11 @@ class StreamTestCase(unittest.TestCase):
 
     def test_should_have_the_close_method(self):
         self.assertTrue(hasattr(Stream, "close"))
+
+    def test_should_send_done_message_on_close(self):
+        self.stream.close()
+        entry = self.stream.queue.get()
+        self.assertEqual(entry, QUEUE_DONE_MESSAGE)
 
     def test_should_send_log_to_tsuru(self):
         self.stream(self.data["stdout"])

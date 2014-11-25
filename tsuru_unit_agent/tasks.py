@@ -18,6 +18,7 @@ def process_output(in_fd, out_fd):
         out_fd.write(line)
     out_fd.flush()
     in_fd.close()
+    out_fd.close()
 
 
 def exec_with_envs(commands, with_shell=False, working_dir="/home/application/current", pipe_output=False):

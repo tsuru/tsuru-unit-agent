@@ -16,6 +16,8 @@ import requests
 
 from . import syslog
 
+QUEUE_DONE_MESSAGE = object()
+
 
 def extract_message(msg):
     # 2012-11-06 18:30:10 [13887] [INFO]
@@ -57,7 +59,7 @@ class Stream(object):
             self.echo.flush()
 
     def close(self):
-        pass
+        self.queue.put_nowait(QUEUE_DONE_MESSAGE)
 
     def __call__(self, data):
         (appname, host, token, syslog_server, syslog_port,
@@ -144,6 +146,8 @@ class TsuruLogWriter(threading.Thread):
         while True:
             try:
                 entry = self.queue.get()
+                if entry == QUEUE_DONE_MESSAGE:
+                    break
                 try:
                     self.session.post(entry.url, data=json.dumps(entry.messages),
                                       timeout=entry.timeout)
