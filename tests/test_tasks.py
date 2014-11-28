@@ -7,10 +7,11 @@ import sys
 
 from tsuru_unit_agent.tasks import (
     execute_start_script,
-    save_apprc_file,
-    run_build_hooks,
     load_app_yaml,
+    run_build_hooks,
     run_restart_hooks,
+    save_apprc_file,
+    write_circus_conf,
 )
 
 
@@ -217,3 +218,71 @@ hooks:
         self.assertDictEqual(data, {"key": "x"})
         data = load_app_yaml(os.path.join(self.working_dir, "fixtures/utf-8"))
         self.assertDictEqual(data, {"key": u"áéíãôüx"})
+
+
+class WriteCircusConfTest(TestCase):
+
+    def setUp(self):
+        self.procfile_path = os.path.join(os.path.dirname(__file__), "fixtures",
+                                          "Procfile")
+        self.conf_path = os.path.join(os.path.dirname(__file__), "fixtures",
+                                      "circus.ini")
+
+    def test_write_file(self):
+        expected_file = open(self.conf_path).read()
+        expected_file += u"""
+[watcher:web]
+cmd = python run_my_app.py -p $PORT
+copy_env = True
+uid = ubuntu
+gid = ubuntu
+working_dir = /home/application/current
+stdout_stream.class = tsuru.stream.Stream
+stderr_stream.class = tsuru.stream.Stream
+
+[watcher:worker]
+cmd = python run_my_worker.py
+copy_env = True
+uid = ubuntu
+gid = ubuntu
+working_dir = /home/application/current
+stdout_stream.class = tsuru.stream.Stream
+stderr_stream.class = tsuru.stream.Stream
+"""
+        write_circus_conf(procfile_path=self.procfile_path, conf_path=self.conf_path)
+        got_file = open(self.conf_path).read()
+        self.assertEqual(expected_file, got_file)
+
+    def test_write_file_no_watchers(self):
+        expected_file = open(self.conf_path).read()
+        write_circus_conf(procfile_path=self.procfile_path + ".empty",
+                          conf_path=self.conf_path)
+        got_file = open(self.conf_path).read()
+        self.assertEqual(expected_file, got_file)
+
+    def test_write_new_file(self):
+        expected_file = u"""
+[watcher:web]
+cmd = python run_my_app.py -p $PORT
+copy_env = True
+uid = ubuntu
+gid = ubuntu
+working_dir = /home/application/current
+stdout_stream.class = tsuru.stream.Stream
+stderr_stream.class = tsuru.stream.Stream
+
+[watcher:worker]
+cmd = python run_my_worker.py
+copy_env = True
+uid = ubuntu
+gid = ubuntu
+working_dir = /home/application/current
+stdout_stream.class = tsuru.stream.Stream
+stderr_stream.class = tsuru.stream.Stream
+"""
+        conf_path = self.conf_path + ".new"
+        write_circus_conf(procfile_path=self.procfile_path,
+                          conf_path=conf_path)
+        self.addCleanup(os.remove, conf_path)
+        got_file = open(conf_path).read()
+        self.assertEqual(expected_file, got_file)

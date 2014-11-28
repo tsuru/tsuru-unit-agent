@@ -8,7 +8,19 @@ import os.path
 from datetime import datetime
 from threading import Thread
 
+from honcho import procfile
 from tsuru_unit_agent.stream import Stream
+
+WATCHER_TEMPLATE = u"""
+[watcher:{name}]
+cmd = {cmd}
+copy_env = True
+uid = {user}
+gid = {group}
+working_dir = {working_dir}
+stdout_stream.class = tsuru.stream.Stream
+stderr_stream.class = tsuru.stream.Stream
+"""
 
 
 def process_output(in_fd, out_fd):
@@ -75,6 +87,23 @@ def load_app_yaml(working_dir="/home/application/current"):
         except IOError:
             pass
     return {}
+
+
+def write_circus_conf(procfile_path="/home/application/current/Procfile",
+                      conf_path="/etc/circus/circus.ini"):
+    content = ""
+    with open(procfile_path) as f:
+        content = f.read()
+    pfile = procfile.Procfile(content)
+    new_watchers = []
+    for name, cmd in pfile.commands.items():
+        new_watchers.append(WATCHER_TEMPLATE.format(name=name, cmd=cmd,
+                                                    user="ubuntu", group="ubuntu",
+                                                    working_dir="/home/application/current"))
+    if new_watchers:
+        with open(conf_path, "a") as f:
+            for watcher in new_watchers:
+                f.write(watcher)
 
 
 def save_apprc_file(environs):

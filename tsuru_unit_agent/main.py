@@ -23,6 +23,7 @@ def deploy_action(args):
     yaml_data = tasks.load_app_yaml()
     client.post_app_yaml(args.app_name, yaml_data)
     tasks.run_build_hooks(yaml_data)
+    tasks.write_circus_conf()
 
 
 actions = {
