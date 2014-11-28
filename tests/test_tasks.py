@@ -227,6 +227,10 @@ class WriteCircusConfTest(TestCase):
                                           "Procfile")
         self.conf_path = os.path.join(os.path.dirname(__file__), "fixtures",
                                       "circus.ini")
+        self.original_conf = open(self.conf_path).read()
+
+    def tearDown(self):
+        open(self.conf_path, "w").write(self.original_conf)
 
     def test_write_file(self):
         expected_file = open(self.conf_path).read()
