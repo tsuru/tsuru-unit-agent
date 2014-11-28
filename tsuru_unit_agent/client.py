@@ -24,6 +24,9 @@ class Client(object):
                 **params)
         tsuru_envs = response.json()
         envs = {env['name']: env['value'] for env in tsuru_envs}
+        # TODO(fss): tsuru should handle this, see
+        # https://github.com/tsuru/tsuru/issues/995.
+        envs["port"] = envs["PORT"] = "8888"
         os.environ.update(envs)
         return tsuru_envs
 

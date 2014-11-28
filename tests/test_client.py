@@ -29,6 +29,8 @@ class TestClient(unittest.TestCase):
             headers={"Authorization": "bearer token"})
         self.assertEqual(os.environ['var1'], 'var2')
         self.assertEqual(os.environ['var3'], 'var4')
+        self.assertEqual(os.environ['port'], '8888')
+        self.assertEqual(os.environ['PORT'], '8888')
 
     @mock.patch("requests.get")
     @mock.patch("requests.post")
