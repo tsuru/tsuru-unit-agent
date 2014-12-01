@@ -228,15 +228,17 @@ class WriteCircusConfTest(TestCase):
         self.conf_path = os.path.join(os.path.dirname(__file__), "fixtures",
                                       "circus.ini")
         self.original_conf = open(self.conf_path).read()
+        os.environ["PORT"] = "8888"
 
     def tearDown(self):
         open(self.conf_path, "w").write(self.original_conf)
+        del os.environ["PORT"]
 
     def test_write_file(self):
         expected_file = open(self.conf_path).read()
         expected_file += u"""
 [watcher:web]
-cmd = python run_my_app.py -p $PORT
+cmd = python run_my_app.py -p 8888
 copy_env = True
 uid = ubuntu
 gid = ubuntu
@@ -267,7 +269,7 @@ stderr_stream.class = tsuru.stream.Stream
     def test_write_new_file(self):
         expected_file = u"""
 [watcher:web]
-cmd = python run_my_app.py -p $PORT
+cmd = python run_my_app.py -p 8888
 copy_env = True
 uid = ubuntu
 gid = ubuntu

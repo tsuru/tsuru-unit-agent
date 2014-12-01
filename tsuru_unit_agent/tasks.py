@@ -97,7 +97,7 @@ def write_circus_conf(procfile_path="/home/application/current/Procfile",
     pfile = procfile.Procfile(content)
     new_watchers = []
     for name, cmd in pfile.commands.items():
-        new_watchers.append(WATCHER_TEMPLATE.format(name=name, cmd=cmd,
+        new_watchers.append(WATCHER_TEMPLATE.format(name=name, cmd=os.path.expandvars(cmd),
                                                     user="ubuntu", group="ubuntu",
                                                     working_dir="/home/application/current"))
     if new_watchers:
