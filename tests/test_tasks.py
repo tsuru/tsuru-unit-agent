@@ -44,11 +44,8 @@ class TestTasks(TestCase):
         exit_mock.assert_called_once_with(10)
 
     def test_save_apprc_file(self):
-        environs = [
-            {"name": "DATABASE_HOST", "value": "localhost", "public": True},
-            {"name": "DATABASE_USER", "value": "root", "public": True},
-        ]
-
+        environs = {"DATABASE_HOST": "localhost",
+                    "DATABASE_USER": "root"}
         with mock.patch("io.open", mock.mock_open()) as m:
             save_apprc_file(environs)
             m.assert_called_once_with("/home/application/apprc", "w")

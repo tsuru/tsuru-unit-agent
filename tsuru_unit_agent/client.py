@@ -1,6 +1,5 @@
 from socket import gethostname
 import json
-import os
 
 import requests
 
@@ -27,8 +26,7 @@ class Client(object):
         # TODO(fss): tsuru should handle this, see
         # https://github.com/tsuru/tsuru/issues/995.
         envs["port"] = envs["PORT"] = "8888"
-        os.environ.update(envs)
-        return tsuru_envs
+        return envs
 
     def post_app_yaml(self, app, data):
         response = requests.post(
