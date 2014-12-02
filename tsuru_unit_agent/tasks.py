@@ -89,17 +89,19 @@ def load_app_yaml(working_dir="/home/application/current"):
     return {}
 
 
-def write_circus_conf(procfile_path="/home/application/current/Procfile",
-                      conf_path="/etc/circus/circus.ini"):
+def write_circus_conf(procfile_path=None, conf_path="/etc/circus/circus.ini"):
+    procfile_path = procfile_path or os.environ.get("PROCFILE_PATH",
+                                                    "/home/application/current/Procfile")
     content = ""
     with open(procfile_path) as f:
         content = f.read()
     pfile = procfile.Procfile(content)
     new_watchers = []
+    working_dir = os.environ.get("APP_WORKING_DIR", "/home/application/current")
     for name, cmd in pfile.commands.items():
         new_watchers.append(WATCHER_TEMPLATE.format(name=name, cmd=os.path.expandvars(cmd),
                                                     user="ubuntu", group="ubuntu",
-                                                    working_dir="/home/application/current"))
+                                                    working_dir=working_dir))
     if new_watchers:
         with open(conf_path, "a") as f:
             for watcher in new_watchers:

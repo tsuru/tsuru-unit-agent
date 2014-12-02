@@ -1,0 +1,2 @@
+web: python run_their_app.py -p $PORT
+worker: python run_their_worker.py
