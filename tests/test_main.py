@@ -38,7 +38,7 @@ class TestMain(unittest.TestCase):
     @mock.patch('tsuru_unit_agent.main.Client')
     def test_main_deploy_action(self, client_mock, tasks_mock):
         register_mock = client_mock.return_value.register_unit
-        register_mock.return_value = [{'name': 'env1', 'value': 'val1'}]
+        register_mock.return_value = {'env1': 'val1'}
         save_apprc_mock = tasks_mock.save_apprc_file
         exec_script_mock = tasks_mock.execute_start_script
         load_yaml_mock = tasks_mock.load_app_yaml
@@ -52,18 +52,19 @@ class TestMain(unittest.TestCase):
         client_mock.assert_called_once_with('http://localhost', 'token')
         register_mock.assert_called_once_with('app1')
         save_apprc_mock.assert_called_once_with(register_mock.return_value)
-        exec_script_mock.assert_called_once_with('mycmd')
+        exec_script_mock.assert_called_once_with('mycmd', envs={'env1': 'val1'})
         load_yaml_mock.assert_called_once()
         write_circus_conf_mock.assert_called_once()
         post_app_yaml_mock.assert_called_once_with('app1', load_yaml_mock.return_value)
-        run_build_hooks_mock.assert_called_once_with(load_yaml_mock.return_value)
+        run_build_hooks_mock.assert_called_once_with(load_yaml_mock.return_value,
+                                                     envs={'env1': 'val1'})
 
     @mock.patch('sys.argv', ['', 'http://localhost', 'token', 'app1', 'mycmd', 'run'])
     @mock.patch('tsuru_unit_agent.main.tasks')
     @mock.patch('tsuru_unit_agent.main.Client')
     def test_main_run_action(self, client_mock, tasks_mock):
         register_mock = client_mock.return_value.register_unit
-        register_mock.return_value = [{'name': 'env1', 'value': 'val1'}]
+        register_mock.return_value = {'env1': 'val1'}
         save_apprc_mock = tasks_mock.save_apprc_file
         exec_script_mock = tasks_mock.execute_start_script
         run_restart_hooks_mock = tasks_mock.run_restart_hooks
@@ -75,7 +76,9 @@ class TestMain(unittest.TestCase):
         client_mock.assert_called_once_with('http://localhost', 'token')
         register_mock.assert_called_once_with('app1')
         save_apprc_mock.assert_called_once_with(register_mock.return_value)
-        exec_script_mock.assert_called_once_with('mycmd')
+        exec_script_mock.assert_called_once_with('mycmd', envs={'env1': 'val1'})
         load_yaml_mock.assert_called_once()
-        run_restart_hooks_mock.assert_any_call('before', load_yaml_mock.return_value)
-        run_restart_hooks_mock.assert_any_call('after', load_yaml_mock.return_value)
+        run_restart_hooks_mock.assert_any_call('before', load_yaml_mock.return_value,
+                                               envs={'env1': 'val1'})
+        run_restart_hooks_mock.assert_any_call('after', load_yaml_mock.return_value,
+                                               envs={'env1': 'val1'})

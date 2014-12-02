@@ -1,10 +1,12 @@
-import subprocess
-import io
 import codecs
+import collections
+import io
 import os
-import yaml
-import sys
 import os.path
+import string
+import subprocess
+import sys
+import yaml
 from datetime import datetime
 from threading import Thread
 
@@ -33,14 +35,19 @@ def process_output(in_fd, out_fd):
     out_fd.close()
 
 
-def exec_with_envs(commands, with_shell=False, working_dir="/home/application/current", pipe_output=False):
+def exec_with_envs(commands, with_shell=False, working_dir="/home/application/current", pipe_output=False,
+                   envs=None):
+    if not envs:
+        envs = {}
+    app_envs = os.environ
+    app_envs.update(envs)
     if not os.path.exists(working_dir):
         working_dir = "/"
     for command in commands:
         popen_output = None
         if pipe_output:
             popen_output = subprocess.PIPE
-        pipe = subprocess.Popen(command, shell=with_shell, cwd=working_dir, env=os.environ,
+        pipe = subprocess.Popen(command, shell=with_shell, cwd=working_dir, env=app_envs,
                                 stdout=popen_output, stderr=popen_output)
         if pipe_output:
             stdout = Stream(echo_output=sys.stdout,
@@ -61,20 +68,21 @@ def exec_with_envs(commands, with_shell=False, working_dir="/home/application/cu
             sys.exit(status)
 
 
-def execute_start_script(start_cmd):
-    exec_with_envs([start_cmd], with_shell=True)
+def execute_start_script(start_cmd, envs=None):
+    exec_with_envs([start_cmd], with_shell=True, envs=envs)
 
 
-def run_build_hooks(app_data):
+def run_build_hooks(app_data, envs=None):
     commands = (app_data.get('hooks') or {}).get('build') or []
-    exec_with_envs(commands, with_shell=True)
+    exec_with_envs(commands, with_shell=True, envs=envs)
 
 
-def run_restart_hooks(position, app_data):
+def run_restart_hooks(position, app_data, envs=None):
     restart_hook = (app_data.get('hooks') or {}).get('restart') or {}
     commands = restart_hook.get('{}-each'.format(position)) or []
     commands += restart_hook.get(position) or []
-    exec_with_envs(commands, with_shell=True, pipe_output=True)
+    exec_with_envs(commands, with_shell=True, pipe_output=True,
+                   envs=envs)
 
 
 def load_app_yaml(working_dir="/home/application/current"):
@@ -89,7 +97,13 @@ def load_app_yaml(working_dir="/home/application/current"):
     return {}
 
 
-def write_circus_conf(procfile_path=None, conf_path="/etc/circus/circus.ini"):
+def write_circus_conf(procfile_path=None, conf_path="/etc/circus/circus.ini",
+                      envs=None):
+    if not envs:
+        envs = {}
+    expanding_envs = collections.defaultdict(str)
+    expanding_envs.update(os.environ)
+    expanding_envs.update(envs)
     procfile_path = procfile_path or os.environ.get("PROCFILE_PATH",
                                                     "/home/application/current/Procfile")
     content = ""
@@ -99,7 +113,8 @@ def write_circus_conf(procfile_path=None, conf_path="/etc/circus/circus.ini"):
     new_watchers = []
     working_dir = os.environ.get("APP_WORKING_DIR", "/home/application/current")
     for name, cmd in pfile.commands.items():
-        new_watchers.append(WATCHER_TEMPLATE.format(name=name, cmd=os.path.expandvars(cmd),
+        cmd = string.Template(cmd).substitute(expanding_envs)
+        new_watchers.append(WATCHER_TEMPLATE.format(name=name, cmd=cmd,
                                                     user="ubuntu", group="ubuntu",
                                                     working_dir=working_dir))
     if new_watchers:

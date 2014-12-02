@@ -17,35 +17,36 @@ from tsuru_unit_agent.tasks import (
 
 class TestTasks(TestCase):
 
-    @mock.patch("os.environ", {'env': 'var'})
+    @mock.patch("os.environ", {'env': 'var', 'env1': 'var1'})
     @mock.patch("subprocess.Popen")
     def test_execute(self, popen_mock):
         wait_mock = popen_mock.return_value.wait
         wait_mock.return_value = 0
-        execute_start_script("my_command")
+        execute_start_script("my_command", envs={"env": "varrr"})
         self.assertEqual(popen_mock.call_args[0][0], 'my_command')
         self.assertEqual(popen_mock.call_args[1]['shell'], True)
         self.assertEqual(popen_mock.call_args[1]['cwd'], '/')
-        self.assertDictEqual(popen_mock.call_args[1]['env'], {'env': 'var'})
+        self.assertDictEqual(popen_mock.call_args[1]['env'], {'env': 'varrr',
+                                                              'env1': 'var1'})
         wait_mock.assert_called_once_with()
 
-    @mock.patch("os.environ", {'myenv': 'var'})
+    @mock.patch("os.environ", {'myenv': 'var', 'env1': 'var1'})
     @mock.patch("sys.exit")
     @mock.patch("subprocess.Popen")
     def test_execute_failing(self, popen_mock, exit_mock):
         wait_mock = popen_mock.return_value.wait
         wait_mock.return_value = 10
-        execute_start_script("my_command")
+        execute_start_script("my_command", envs={"myenv": "varrr"})
         self.assertEqual(popen_mock.call_args[0][0], 'my_command')
         self.assertEqual(popen_mock.call_args[1]['shell'], True)
         self.assertEqual(popen_mock.call_args[1]['cwd'], '/')
-        self.assertDictEqual(popen_mock.call_args[1]['env'], {'myenv': 'var'})
+        self.assertDictEqual(popen_mock.call_args[1]['env'], {'myenv': 'varrr',
+                                                              'env1': 'var1'})
         wait_mock.assert_called_once_with()
         exit_mock.assert_called_once_with(10)
 
     def test_save_apprc_file(self):
-        environs = {"DATABASE_HOST": "localhost",
-                    "DATABASE_USER": "root"}
+        environs = {"DATABASE_HOST": "localhost", "DATABASE_USER": "root"}
         with mock.patch("io.open", mock.mock_open()) as m:
             save_apprc_file(environs)
             m.assert_called_once_with("/home/application/apprc", "w")
@@ -59,17 +60,18 @@ class TestTasks(TestCase):
 
 class RunHooksTest(TestCase):
 
-    @mock.patch("os.environ", {'env': 'var'})
+    @mock.patch("os.environ", {'env': 'var', 'env1': 'var1'})
     @mock.patch("subprocess.Popen")
     def test_execute_commands(self, popen_call):
         wait_mock = popen_call.return_value.wait
         wait_mock.return_value = 0
         data = {"hooks": {"build": ["ble"]}}
-        run_build_hooks(data)
+        run_build_hooks(data, envs={'env': 'varrr'})
         self.assertEqual(popen_call.call_args[0][0], 'ble')
         self.assertEqual(popen_call.call_args[1]['shell'], True)
         self.assertEqual(popen_call.call_args[1]['cwd'], '/')
-        self.assertDictEqual(popen_call.call_args[1]['env'], {'env': 'var'})
+        self.assertDictEqual(popen_call.call_args[1]['env'], {'env': 'varrr',
+                                                              'env1': 'var1'})
         wait_mock.assert_called_once_with()
 
     @mock.patch("os.environ", {})
@@ -122,7 +124,7 @@ class RunHooksTest(TestCase):
 class RunRestartHooksTest(TestCase):
 
     @mock.patch("tsuru_unit_agent.tasks.Stream")
-    @mock.patch("os.environ", {'env': 'var'})
+    @mock.patch("os.environ", {'env': 'var', 'env1': 'var1'})
     @mock.patch("subprocess.Popen")
     def test_run_restart_hooks(self, popen_call, Stream):
         popen_call.return_value.stdout.readline.return_value = ''
@@ -135,12 +137,13 @@ class RunRestartHooksTest(TestCase):
             "after": ["a1"],
             "after-each": ["a2"],
         }}}
-        run_restart_hooks('before', data)
+        run_restart_hooks('before', data, envs={'env': 'varrr'})
         self.assertEqual(popen_call.call_count, 2)
         self.assertEqual(popen_call.call_args_list[0][0][0], 'b2')
         self.assertEqual(popen_call.call_args_list[0][1]['shell'], True)
         self.assertEqual(popen_call.call_args_list[0][1]['cwd'], '/')
-        self.assertDictEqual(popen_call.call_args_list[0][1]['env'], {'env': 'var'})
+        self.assertDictEqual(popen_call.call_args_list[0][1]['env'], {'env': 'varrr',
+                                                                      'env1': 'var1'})
         self.assertEqual(popen_call.call_args_list[1][0][0], 'b1')
         wait_mock.assert_any_call()
         run_restart_hooks('after', data)
@@ -149,7 +152,7 @@ class RunRestartHooksTest(TestCase):
         self.assertEqual(popen_call.call_args_list[2][0][0], 'a2')
 
     @mock.patch("tsuru_unit_agent.tasks.Stream")
-    @mock.patch("os.environ", {'env': 'var'})
+    @mock.patch("os.environ", {'env': 'var', 'env1': 'var1'})
     @mock.patch("subprocess.Popen")
     def test_run_restart_hooks_calls_stream(self, popen_call, stream_mock):
         out1 = ['stdout_out1', '']
@@ -161,12 +164,13 @@ class RunRestartHooksTest(TestCase):
         data = {"hooks": {"restart": {
             "before": ["b1"],
         }}}
-        run_restart_hooks('before', data)
+        run_restart_hooks('before', data, envs={'env': 'varrr'})
         self.assertEqual(popen_call.call_count, 1)
         self.assertEqual(popen_call.call_args_list[0][0][0], 'b1')
         self.assertEqual(popen_call.call_args_list[0][1]['shell'], True)
         self.assertEqual(popen_call.call_args_list[0][1]['cwd'], '/')
-        self.assertDictEqual(popen_call.call_args_list[0][1]['env'], {'env': 'var'})
+        self.assertDictEqual(popen_call.call_args_list[0][1]['env'], {'env': 'varrr',
+                                                                      'env1': 'var1'})
         wait_mock.assert_called_once_with()
         stream_mock.assert_any_call(echo_output=sys.stdout, default_stream_name='stdout',
                                     watcher_name='unit-agent')
@@ -227,17 +231,19 @@ class WriteCircusConfTest(TestCase):
         self.conf_path = os.path.join(os.path.dirname(__file__), "fixtures",
                                       "circus.ini")
         self.original_conf = open(self.conf_path).read()
-        os.environ["PORT"] = "8888"
+        os.environ["PORT"] = "9090"
+        os.environ["POORT"] = "8989"
 
     def tearDown(self):
         open(self.conf_path, "w").write(self.original_conf)
         del os.environ["PORT"]
+        del os.environ["POORT"]
 
     def test_write_file(self):
         expected_file = open(self.conf_path).read()
         expected_file += u"""
 [watcher:web]
-cmd = python run_my_app.py -p 8888
+cmd = python run_my_app.py -p 8888 -l 8989
 copy_env = True
 uid = ubuntu
 gid = ubuntu
@@ -254,7 +260,8 @@ working_dir = /home/application/current
 stdout_stream.class = tsuru.stream.Stream
 stderr_stream.class = tsuru.stream.Stream
 """
-        write_circus_conf(procfile_path=self.procfile_path, conf_path=self.conf_path)
+        write_circus_conf(procfile_path=self.procfile_path, conf_path=self.conf_path,
+                          envs={"PORT": "8888"})
         got_file = open(self.conf_path).read()
         self.assertEqual(expected_file, got_file)
 
@@ -268,7 +275,7 @@ stderr_stream.class = tsuru.stream.Stream
     def test_write_new_file(self):
         expected_file = u"""
 [watcher:web]
-cmd = python run_my_app.py -p 8888
+cmd = python run_my_app.py -p 8888 -l 8989
 copy_env = True
 uid = ubuntu
 gid = ubuntu
@@ -287,7 +294,7 @@ stderr_stream.class = tsuru.stream.Stream
 """
         conf_path = self.conf_path + ".new"
         write_circus_conf(procfile_path=self.procfile_path,
-                          conf_path=conf_path)
+                          conf_path=conf_path, envs={"PORT": "8888"})
         self.addCleanup(os.remove, conf_path)
         got_file = open(conf_path).read()
         self.assertEqual(expected_file, got_file)
@@ -300,7 +307,7 @@ stderr_stream.class = tsuru.stream.Stream
         self.addCleanup(clean)
         expected_file = u"""
 [watcher:web]
-cmd = python run_my_app.py -p 8888
+cmd = python run_my_app.py -p 8888 -l 8989
 copy_env = True
 uid = ubuntu
 gid = ubuntu
@@ -319,7 +326,7 @@ stderr_stream.class = tsuru.stream.Stream
 """
         conf_path = self.conf_path + ".new"
         write_circus_conf(procfile_path=self.procfile_path,
-                          conf_path=conf_path)
+                          conf_path=conf_path, envs={"PORT": "8888"})
         self.addCleanup(os.remove, conf_path)
         got_file = open(conf_path).read()
         self.assertEqual(expected_file, got_file)
@@ -349,7 +356,7 @@ stdout_stream.class = tsuru.stream.Stream
 stderr_stream.class = tsuru.stream.Stream
 """
         conf_path = self.conf_path + ".new"
-        write_circus_conf(conf_path=conf_path)
+        write_circus_conf(conf_path=conf_path, envs={"PORT": "8888"})
         self.addCleanup(os.remove, conf_path)
         got_file = open(conf_path).read()
         self.assertEqual(expected_file, got_file)
