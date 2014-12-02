@@ -39,7 +39,6 @@ class TestMain(unittest.TestCase):
     def test_main_deploy_action(self, client_mock, tasks_mock):
         register_mock = client_mock.return_value.register_unit
         register_mock.return_value = {'env1': 'val1'}
-        save_apprc_mock = tasks_mock.save_apprc_file
         exec_script_mock = tasks_mock.execute_start_script
         load_yaml_mock = tasks_mock.load_app_yaml
         load_yaml_mock.return_value = {'hooks': {'build': ['cmd_1', 'cmd_2']}}
@@ -48,11 +47,10 @@ class TestMain(unittest.TestCase):
         write_circus_conf_mock = tasks_mock.write_circus_conf
         main()
         call_count = len(client_mock.mock_calls) + len(tasks_mock.mock_calls)
-        self.assertEqual(call_count, 8)
+        self.assertEqual(call_count, 7)
         client_mock.assert_called_once_with('http://localhost', 'token')
         register_mock.assert_called_once_with('app1')
-        save_apprc_mock.assert_called_once_with(register_mock.return_value)
-        exec_script_mock.assert_called_once_with('mycmd', envs={'env1': 'val1'})
+        exec_script_mock.assert_called_once_with('mycmd')
         load_yaml_mock.assert_called_once()
         write_circus_conf_mock.assert_called_once()
         post_app_yaml_mock.assert_called_once_with('app1', load_yaml_mock.return_value)

@@ -15,11 +15,12 @@ def run_action(args, run_hooks=True):
     tasks.execute_start_script(args.start_cmd, envs=envs)
     if run_hooks:
         tasks.run_restart_hooks('after', yaml_data, envs=envs)
-    return client, envs
 
 
 def deploy_action(args):
-    client, envs = run_action(args, run_hooks=False)
+    client = Client(args.url, args.token)
+    envs = client.register_unit(args.app_name)
+    tasks.execute_start_script(args.start_cmd)
     yaml_data = tasks.load_app_yaml()
     client.post_app_yaml(args.app_name, yaml_data)
     tasks.run_build_hooks(yaml_data, envs=envs)
