@@ -3,6 +3,7 @@ import collections
 import io
 import os
 import os.path
+import shutil
 import string
 import subprocess
 import sys
@@ -117,6 +118,11 @@ def write_circus_conf(procfile_path=None, conf_path="/etc/circus/circus.ini",
         new_watchers.append(WATCHER_TEMPLATE.format(name=name, cmd=cmd,
                                                     user="ubuntu", group="ubuntu",
                                                     working_dir=working_dir))
+    base_conf = conf_path + ".base"
+    if os.path.exists(conf_path):
+        if not os.path.exists(base_conf):
+            shutil.copy2(conf_path, base_conf)
+        shutil.copy2(base_conf, conf_path)
     if new_watchers:
         with open(conf_path, "a") as f:
             for watcher in new_watchers:

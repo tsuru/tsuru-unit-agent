@@ -265,6 +265,36 @@ stderr_stream.class = tsuru.stream.Stream
         got_file = open(self.conf_path).read()
         self.assertEqual(expected_file, got_file)
 
+    def test_write_file_multiple_times(self):
+        expected_file = open(self.conf_path).read()
+        expected_file += u"""
+[watcher:web]
+cmd = python run_my_app.py -p 8888 -l 8989
+copy_env = True
+uid = ubuntu
+gid = ubuntu
+working_dir = /home/application/current
+stdout_stream.class = tsuru.stream.Stream
+stderr_stream.class = tsuru.stream.Stream
+
+[watcher:worker]
+cmd = python run_my_worker.py
+copy_env = True
+uid = ubuntu
+gid = ubuntu
+working_dir = /home/application/current
+stdout_stream.class = tsuru.stream.Stream
+stderr_stream.class = tsuru.stream.Stream
+"""
+        write_circus_conf(procfile_path=self.procfile_path, conf_path=self.conf_path,
+                          envs={"PORT": "8888"})
+        write_circus_conf(procfile_path=self.procfile_path, conf_path=self.conf_path,
+                          envs={"PORT": "8888"})
+        write_circus_conf(procfile_path=self.procfile_path, conf_path=self.conf_path,
+                          envs={"PORT": "8888"})
+        got_file = open(self.conf_path).read()
+        self.assertEqual(expected_file, got_file)
+
     def test_write_file_no_watchers(self):
         expected_file = open(self.conf_path).read()
         write_circus_conf(procfile_path=self.procfile_path + ".empty",
