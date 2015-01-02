@@ -7,6 +7,7 @@ from tsuru_unit_agent import __version__
 
 setup(
     name="tsuru-unit-agent",
+    url="https://github.com/tsuru/tsuru-unit-agent",
     version=__version__,
     packages=find_packages(),
     description="Tsuru unit agent.",
