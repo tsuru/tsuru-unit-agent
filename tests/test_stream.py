@@ -5,13 +5,11 @@
 import unittest
 import mock
 import logging
-import os
 import socket
 
 from tsuru_unit_agent.stream import Stream, QUEUE_DONE_MESSAGE
 
-
-@mock.patch("os.environ", {
+mocked_environ = {
     "TSURU_APPNAME": "appname1",
     "TSURU_HOST": "host1",
     "TSURU_APP_TOKEN": "secret123",
@@ -19,9 +17,13 @@ from tsuru_unit_agent.stream import Stream, QUEUE_DONE_MESSAGE
     "TSURU_SYSLOG_PORT": "514",
     "TSURU_SYSLOG_FACILITY": "LOCAL0",
     "TSURU_SYSLOG_SOCKET": "udp",
-})
+}
+
+
+@mock.patch("os.environ", mocked_environ)
 class StreamTestCase(unittest.TestCase):
 
+    @mock.patch("os.environ", mocked_environ)
     @mock.patch("tsuru_unit_agent.stream.gethostname")
     @mock.patch("tsuru_unit_agent.stream.TsuruLogWriter")
     def setUp(self, TsuruLogWriter, gethostname):
@@ -40,7 +42,6 @@ class StreamTestCase(unittest.TestCase):
             "data": l_out,
             "name": "stdout"
         }
-        os.environ.setdefault("TSURU_APP_TOKEN", "secret123")
         self.stream = Stream(watcher_name="mywatcher")
         TsuruLogWriter.assert_called_with(mock.ANY, self.stream.queue)
         log_writer.start.assert_called_once()
@@ -122,6 +123,23 @@ class StreamTestCase(unittest.TestCase):
         self.assertEqual(url, entry.url)
         self.assertEqual(10, entry.timeout)
         self.assertEqual([expected_msg], entry.messages)
+
+    @mock.patch("tsuru_unit_agent.stream.gethostname")
+    @mock.patch("tsuru_unit_agent.stream.TsuruLogWriter")
+    def test_envs_may_be_overriden(self, TsuruLogWriter, gethostname):
+        TsuruLogWriter.return_value = mock.Mock()
+        gethostname.return_value = "myhost"
+        stream = Stream(watcher_name="watcher", envs={"TSURU_APPNAME": "mynewappname"})
+        stream(self.data["stdout"])
+        (appname, host, token, syslog_server,
+         syslog_port, syslog_facility, syslog_socket) = stream._load_envs()
+        self.assertEqual(appname, "mynewappname")
+        self.assertEqual(host, "host1")
+        self.assertEqual(token, "secret123")
+        self.assertEqual(syslog_server, "host2")
+        self.assertEqual(syslog_port, "514")
+        self.assertEqual(syslog_facility, "LOCAL0")
+        self.assertEqual(syslog_socket, "udp")
 
     @mock.patch("tsuru_unit_agent.stream.TsuruLogWriter")
     @mock.patch("os.environ", {})

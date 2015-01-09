@@ -40,7 +40,8 @@ def exec_with_envs(commands, with_shell=False, working_dir="/home/application/cu
                    envs=None):
     if not envs:
         envs = {}
-    app_envs = os.environ
+    app_envs = {}
+    app_envs.update(os.environ)
     app_envs.update(envs)
     if not os.path.exists(working_dir):
         working_dir = "/"
@@ -53,10 +54,12 @@ def exec_with_envs(commands, with_shell=False, working_dir="/home/application/cu
         if pipe_output:
             stdout = Stream(echo_output=sys.stdout,
                             default_stream_name='stdout',
-                            watcher_name='unit-agent')
+                            watcher_name='unit-agent',
+                            envs=app_envs)
             stderr = Stream(echo_output=sys.stderr,
                             default_stream_name='stderr',
-                            watcher_name='unit-agent')
+                            watcher_name='unit-agent',
+                            envs=app_envs)
             stdout_thread = Thread(target=process_output, args=(pipe.stdout, stdout))
             stdout_thread.start()
             stderr_thread = Thread(target=process_output, args=(pipe.stderr, stderr))

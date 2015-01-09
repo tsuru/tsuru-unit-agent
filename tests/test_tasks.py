@@ -165,6 +165,7 @@ class RunRestartHooksTest(TestCase):
             "before": ["b1"],
         }}}
         run_restart_hooks('before', data, envs={'env': 'varrr'})
+        self.assertDictEqual(os.environ, {'env': 'var', 'env1': 'var1'})
         self.assertEqual(popen_call.call_count, 1)
         self.assertEqual(popen_call.call_args_list[0][0][0], 'b1')
         self.assertEqual(popen_call.call_args_list[0][1]['shell'], True)
@@ -172,10 +173,17 @@ class RunRestartHooksTest(TestCase):
         self.assertDictEqual(popen_call.call_args_list[0][1]['env'], {'env': 'varrr',
                                                                       'env1': 'var1'})
         wait_mock.assert_called_once_with()
-        stream_mock.assert_any_call(echo_output=sys.stdout, default_stream_name='stdout',
-                                    watcher_name='unit-agent')
-        stream_mock.assert_any_call(echo_output=sys.stderr, default_stream_name='stderr',
-                                    watcher_name='unit-agent')
+        self.assertEqual(stream_mock.call_count, 2)
+        self.assertEqual(stream_mock.call_args_list[0][1]['echo_output'], sys.stdout)
+        self.assertEqual(stream_mock.call_args_list[0][1]['default_stream_name'], 'stdout')
+        self.assertEqual(stream_mock.call_args_list[0][1]['watcher_name'], 'unit-agent')
+        self.assertEqual(stream_mock.call_args_list[0][1]['envs'], {'env': 'varrr',
+                                                                    'env1': 'var1'})
+        self.assertEqual(stream_mock.call_args_list[1][1]['echo_output'], sys.stderr)
+        self.assertEqual(stream_mock.call_args_list[1][1]['default_stream_name'], 'stderr')
+        self.assertEqual(stream_mock.call_args_list[1][1]['watcher_name'], 'unit-agent')
+        self.assertEqual(stream_mock.call_args_list[1][1]['envs'], {'env': 'varrr',
+                                                                    'env1': 'var1'})
         write_mock = stream_mock.return_value.write
         write_mock.assert_any_call('stdout_out1')
         write_mock.assert_any_call('stderr_out1')

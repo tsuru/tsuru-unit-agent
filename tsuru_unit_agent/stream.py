@@ -35,6 +35,10 @@ class Stream(object):
         self.timeout = kwargs.get("timeout", 2)
         self.echo = kwargs.get("echo_output")
         self.default_stream_name = kwargs.get("default_stream_name", "stdout")
+        envs = kwargs.get("envs") or {}
+        self.envs = {}
+        self.envs.update(os.environ)
+        self.envs.update(envs)
         self.hostname = gethostname()
         self.start_writer()
 
@@ -43,7 +47,7 @@ class Stream(object):
         session = requests.Session()
         if token:
             session.headers.update({"Authorization": "bearer " + token})
-        maxsize = int(os.environ.get("LOG_MAX_QUEUE_SIZE", 1000))
+        maxsize = int(self.envs.get("LOG_MAX_QUEUE_SIZE", 1000))
         self.queue = Queue.Queue(maxsize=maxsize)
         self.writer = TsuruLogWriter(session, self.queue)
         self.writer.start()
@@ -108,12 +112,11 @@ class Stream(object):
             pass
 
     def _load_envs(self):
-        envs = os.environ
-        return (envs.get("TSURU_APPNAME"), envs.get("TSURU_HOST"),
-                envs.get("TSURU_APP_TOKEN"), envs.get("TSURU_SYSLOG_SERVER"),
-                envs.get("TSURU_SYSLOG_PORT"),
-                envs.get("TSURU_SYSLOG_FACILITY"),
-                envs.get("TSURU_SYSLOG_SOCKET"))
+        return (self.envs.get("TSURU_APPNAME"), self.envs.get("TSURU_HOST"),
+                self.envs.get("TSURU_APP_TOKEN"), self.envs.get("TSURU_SYSLOG_SERVER"),
+                self.envs.get("TSURU_SYSLOG_PORT"),
+                self.envs.get("TSURU_SYSLOG_FACILITY"),
+                self.envs.get("TSURU_SYSLOG_SOCKET"))
 
     def _flush(self):
         if len(self._buffer) > 0:
