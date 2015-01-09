@@ -14,7 +14,7 @@ setup(
     author="tsuru",
     author_email="tsuru@corp.globo.com",
     include_package_data=True,
-    install_requires=["requests", "PyYAML", "honcho"],
+    install_requires=["requests", "PyYAML", "honcho==0.5.0"],
     entry_points={
         'console_scripts': [
             'tsuru_unit_agent = tsuru_unit_agent.main:main',
