@@ -1,0 +1,10 @@
+# some comment
+
+export A=B
+export C="C D"
+export MY_awesome_BIG_name=something
+
+export b=888
+
+export B="9\"1"
+export D="X=y"

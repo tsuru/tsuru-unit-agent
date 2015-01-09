@@ -1,25 +1,29 @@
 import sys
 import argparse
+from requests.exceptions import ConnectionError
 
 from tsuru_unit_agent import tasks
 from tsuru_unit_agent.client import Client
 
 
-def run_action(args, run_hooks=True):
+def run_action(args):
     client = Client(args.url, args.token)
-    envs = client.register_unit(args.app_name)
-    tasks.save_apprc_file(envs)
-    if run_hooks:
-        yaml_data = tasks.load_app_yaml()
-        tasks.run_restart_hooks('before', yaml_data, envs=envs)
+    envs = None
+    try:
+        envs = client.register_unit(args.app_name)
+        tasks.save_apprc_file(envs)
+    except ConnectionError:
+        envs = tasks.parse_apprc_file()
+    yaml_data = tasks.load_app_yaml()
+    tasks.run_restart_hooks('before', yaml_data, envs=envs)
     tasks.execute_start_script(args.start_cmd, envs=envs)
-    if run_hooks:
-        tasks.run_restart_hooks('after', yaml_data, envs=envs)
+    tasks.run_restart_hooks('after', yaml_data, envs=envs)
 
 
 def deploy_action(args):
     client = Client(args.url, args.token)
     envs = client.register_unit(args.app_name)
+    tasks.save_apprc_file(envs)
     tasks.execute_start_script(args.start_cmd)
     yaml_data = tasks.load_app_yaml()
     client.post_app_yaml(args.app_name, yaml_data)

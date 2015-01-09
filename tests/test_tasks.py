@@ -11,6 +11,7 @@ from tsuru_unit_agent.tasks import (
     run_build_hooks,
     run_restart_hooks,
     save_apprc_file,
+    parse_apprc_file,
     write_circus_conf,
 )
 
@@ -56,6 +57,21 @@ class TestTasks(TestCase):
             write_mock.assert_any_call('export DATABASE_HOST="localhost"\n')
             write_mock.assert_any_call('export DATABASE_USER="root"\n')
             self.assertEqual(len(write_mock.mock_calls), 3)
+
+    def test_parse_apprc_file(self):
+        path = os.path.join(os.path.dirname(__file__), "fixtures", "apprc")
+        envs = parse_apprc_file(path)
+        envs.pop("PWD", None)
+        envs.pop("_", None)
+        envs.pop("SHLVL", None)
+        self.assertDictEqual(envs, {
+            "A": "B",
+            "C": "C D",
+            "b": "888",
+            "B": "9\"1",
+            "D": "X=y",
+            "MY_awesome_BIG_name": "something",
+        })
 
 
 class RunHooksTest(TestCase):
