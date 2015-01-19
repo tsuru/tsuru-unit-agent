@@ -77,7 +77,7 @@ class TestMain(unittest.TestCase):
         client_mock.assert_called_once_with('http://localhost', 'token')
         register_mock.assert_called_once_with('app1')
         save_apprc_mock.assert_called_once_with(register_mock.return_value)
-        exec_script_mock.assert_called_once_with('mycmd', envs={'env1': 'val1'})
+        exec_script_mock.assert_called_once_with('mycmd', envs={'env1': 'val1'}, with_shell=False)
         load_yaml_mock.assert_called_once_with()
         run_restart_hooks_mock.assert_any_call('before', load_yaml_mock.return_value,
                                                envs={'env1': 'val1'})
@@ -107,7 +107,7 @@ class TestMain(unittest.TestCase):
         register_mock.assert_called_once_with('app1')
         parse_apprc_mock.assert_called_once_with()
         self.assertEqual(save_apprc_mock.call_count, 0)
-        exec_script_mock.assert_called_once_with('mycmd', envs={'env1': 'val1'})
+        exec_script_mock.assert_called_once_with('mycmd', envs={'env1': 'val1'}, with_shell=False)
         load_yaml_mock.assert_called_once_with()
         run_restart_hooks_mock.assert_any_call('before', load_yaml_mock.return_value,
                                                envs={'env1': 'val1'})

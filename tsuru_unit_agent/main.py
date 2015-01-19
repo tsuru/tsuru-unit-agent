@@ -16,7 +16,7 @@ def run_action(args):
         envs = tasks.parse_apprc_file()
     yaml_data = tasks.load_app_yaml()
     tasks.run_restart_hooks('before', yaml_data, envs=envs)
-    tasks.execute_start_script(args.start_cmd, envs=envs)
+    tasks.execute_start_script(args.start_cmd, envs=envs, with_shell=False)
     tasks.run_restart_hooks('after', yaml_data, envs=envs)
 
 

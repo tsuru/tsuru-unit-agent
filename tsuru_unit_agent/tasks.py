@@ -9,6 +9,7 @@ import subprocess
 import sys
 import yaml
 import json
+import signal
 from datetime import datetime
 from threading import Thread
 
@@ -36,9 +37,21 @@ def process_output(in_fd, out_fd):
     in_fd.close()
     out_fd.close()
 
+running_pipe = None
+
+
+def sigterm_handler(signum, sigframe):
+    try:
+        running_pipe.send_signal(signal.SIGTERM)
+    except:
+        pass
+    sys.exit(0)
+signal.signal(signal.SIGTERM, sigterm_handler)
+
 
 def exec_with_envs(commands, with_shell=False, working_dir="/home/application/current", pipe_output=False,
                    envs=None):
+    global running_pipe
     if not envs:
         envs = {}
     app_envs = {}
@@ -52,6 +65,7 @@ def exec_with_envs(commands, with_shell=False, working_dir="/home/application/cu
             popen_output = subprocess.PIPE
         pipe = subprocess.Popen(command, shell=with_shell, cwd=working_dir, env=app_envs,
                                 stdout=popen_output, stderr=popen_output)
+        running_pipe = pipe
         if pipe_output:
             stdout = Stream(echo_output=sys.stdout,
                             default_stream_name='stdout',
@@ -66,6 +80,7 @@ def exec_with_envs(commands, with_shell=False, working_dir="/home/application/cu
             stderr_thread = Thread(target=process_output, args=(pipe.stderr, stderr))
             stderr_thread.start()
         status = pipe.wait()
+        running_pipe = None
         if pipe_output:
             stdout_thread.join()
             stderr_thread.join()
@@ -73,8 +88,8 @@ def exec_with_envs(commands, with_shell=False, working_dir="/home/application/cu
             sys.exit(status)
 
 
-def execute_start_script(start_cmd, envs=None):
-    exec_with_envs([start_cmd], with_shell=True, envs=envs)
+def execute_start_script(start_cmd, envs=None, with_shell=True):
+    exec_with_envs([start_cmd], with_shell=with_shell, envs=envs)
 
 
 def run_build_hooks(app_data, envs=None):
