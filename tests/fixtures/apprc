@@ -8,3 +8,5 @@ export b=888
 
 export B="9\"1"
 export D="X=y"
+
+export F="a(a"

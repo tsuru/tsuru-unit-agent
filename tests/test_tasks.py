@@ -61,17 +61,44 @@ class TestTasks(TestCase):
     def test_parse_apprc_file(self):
         path = os.path.join(os.path.dirname(__file__), "fixtures", "apprc")
         envs = parse_apprc_file(path)
-        envs.pop("PWD", None)
-        envs.pop("_", None)
-        envs.pop("SHLVL", None)
-        self.assertDictEqual(envs, {
+        expected = {
             "A": "B",
             "C": "C D",
             "b": "888",
             "B": "9\"1",
             "D": "X=y",
+            "F": "a(a",
             "MY_awesome_BIG_name": "something",
-        })
+        }
+        for k, v in envs.items():
+            if k not in expected:
+                envs.pop(k)
+        self.assertDictEqual(envs, expected)
+
+    def test_save_parse_apprc_escaping(self):
+        expected = {
+            "A": "B",
+            "C": "C D",
+            "b": "888",
+            "B": "9\"1",
+            "D": "X=y",
+            "F": "a(a) + (",
+            "MY_awesome_BIG_name": "some'thin'g'",
+            "JSON": '[{"a": "b", "c": {"d": "f"}}]',
+            "SLASHED": "a\\a escaped \\\" some \\\"",
+            "EXEC": "a: `echo hey` b: $(echo again)",
+            "MULTILINE": "my\nmulti\"line\"\nvariable",
+        }
+        path = os.path.join(os.path.dirname(__file__), "fixtures", "written_apprc")
+        try:
+            save_apprc_file(expected, file_path=path)
+            envs = parse_apprc_file(path)
+            for k, v in envs.items():
+                if k not in expected:
+                    envs.pop(k)
+            self.assertDictEqual(envs, expected)
+        finally:
+            os.remove(path)
 
 
 class RunHooksTest(TestCase):
