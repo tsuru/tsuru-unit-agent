@@ -51,7 +51,7 @@ class TestMain(unittest.TestCase):
         call_count = len(client_mock.mock_calls) + len(tasks_mock.mock_calls)
         self.assertEqual(call_count, 8)
         client_mock.assert_called_once_with('http://localhost', 'token')
-        register_mock.assert_called_once_with('app1')
+        register_mock.assert_called_once_with('app1', load_yaml_mock.return_value)
         save_apprc_mock.assert_called_once_with(register_mock.return_value)
         exec_script_mock.assert_called_once_with('mycmd')
         load_yaml_mock.assert_called_once_with()

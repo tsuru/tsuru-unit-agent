@@ -20,10 +20,32 @@ class TestClient(unittest.TestCase):
             {'name': 'var3', 'value': 'var4'},
         ]
         client = Client("http://localhost", "token")
-        envs = client.register_unit(app="myapp")
+        envs = client.register_unit("myapp")
         post_mock.assert_called_with(
             "{}/apps/myapp/units/register".format(client.url),
             data={"hostname": gethostname()},
+            headers={"Authorization": "bearer token"})
+        self.assertEqual(envs['var1'], 'var2')
+        self.assertEqual(envs['var3'], 'var4')
+        self.assertEqual(envs['port'], '8888')
+        self.assertEqual(envs['PORT'], '8888')
+
+    @mock.patch("requests.post")
+    def test_register_unit_with_customdata(self, post_mock):
+        response = post_mock.return_value
+        response.status_code = 200
+        response.json.return_value = [
+            {'name': 'var1', 'value': 'var2'},
+            {'name': 'var3', 'value': 'var4'},
+        ]
+        client = Client("http://localhost", "token")
+        envs = client.register_unit("myapp", {"mykey": ["val1", "val2"]})
+        post_mock.assert_called_with(
+            "{}/apps/myapp/units/register".format(client.url),
+            data={
+                "hostname": gethostname(),
+                "customdata": '{"mykey": ["val1", "val2"]}'
+            },
             headers={"Authorization": "bearer token"})
         self.assertEqual(envs['var1'], 'var2')
         self.assertEqual(envs['var3'], 'var4')

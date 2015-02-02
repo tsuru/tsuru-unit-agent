@@ -9,13 +9,18 @@ class Client(object):
         self.url = url
         self.token = token
 
-    def register_unit(self, app):
+    def register_unit(self, app, custom_data=None):
         params = {
             'headers': {"Authorization": "bearer {}".format(self.token)},
         }
+        request_data = {
+            "hostname": gethostname(),
+        }
+        if custom_data is not None:
+            request_data["customdata"] = json.dumps(custom_data)
         response = requests.post(
             "{}/apps/{}/units/register".format(self.url, app),
-            data={"hostname": gethostname()},
+            data=request_data,
             **params)
         if response.status_code != 200:
             response = requests.get(
