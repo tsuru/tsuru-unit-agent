@@ -22,7 +22,7 @@ class Client(object):
             "{}/apps/{}/units/register".format(self.url, app),
             data=request_data,
             **params)
-        if 400 < response.status_code < 500:
+        if 400 <= response.status_code < 500:
             response = requests.get(
                 "{}/apps/{}/env".format(self.url, app),
                 **params)
