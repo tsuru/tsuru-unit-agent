@@ -78,6 +78,21 @@ class TestClient(unittest.TestCase):
         self.assertEqual(envs['port'], '8888')
         self.assertEqual(envs['PORT'], '8888')
 
+    @mock.patch("requests.get")
+    @mock.patch("requests.post")
+    def test_register_unit_hard_fail(self, post_mock, get_mock):
+        response = post_mock.return_value
+        response.status_code = 500
+        response.text = "some error"
+        client = Client("http://localhost", "token")
+        with self.assertRaises(Exception) as cm:
+            client.register_unit(app="myapp")
+        post_mock.assert_called_once_with(
+            "{}/apps/myapp/units/register".format(client.url),
+            data={"hostname": gethostname()},
+            headers={"Authorization": "bearer token"})
+        self.assertEqual(str(cm.exception), "invalid response 500 - some error")
+
     @mock.patch("requests.post")
     def test_post_app_yaml(self, post_mock):
         response = post_mock.return_value

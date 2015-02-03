@@ -22,10 +22,12 @@ class Client(object):
             "{}/apps/{}/units/register".format(self.url, app),
             data=request_data,
             **params)
-        if response.status_code != 200:
+        if 400 < response.status_code < 500:
             response = requests.get(
                 "{}/apps/{}/env".format(self.url, app),
                 **params)
+        if not 200 <= response.status_code < 400:
+            raise Exception("invalid response {} - {}".format(response.status_code, response.text))
         tsuru_envs = response.json()
         envs = {env['name']: env['value'] for env in tsuru_envs}
         # TODO(fss): tsuru should handle this, see
