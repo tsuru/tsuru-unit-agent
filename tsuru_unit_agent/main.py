@@ -21,11 +21,12 @@ def run_action(args):
 
 
 def deploy_action(args):
-    yaml_data = tasks.load_app_yaml()
     client = Client(args.url, args.token)
-    envs = client.register_unit(args.app_name, yaml_data)
+    envs = client.register_unit(args.app_name)
     tasks.save_apprc_file(envs)
     tasks.execute_start_script(args.start_cmd)
+    yaml_data = tasks.load_app_yaml()
+    client.register_unit(args.app_name, yaml_data)
     client.post_app_yaml(args.app_name, yaml_data)
     tasks.run_build_hooks(yaml_data, envs=envs)
     tasks.write_circus_conf(envs=envs)
