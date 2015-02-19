@@ -70,11 +70,13 @@ class TestMain(unittest.TestCase):
         save_apprc_mock = tasks_mock.save_apprc_file
         exec_script_mock = tasks_mock.execute_start_script
         run_restart_hooks_mock = tasks_mock.run_restart_hooks
+        write_circus_conf_mock = tasks_mock.write_circus_conf
         load_yaml_mock = tasks_mock.load_app_yaml
         load_yaml_mock.return_value = {'hooks': {'build': ['cmd_1', 'cmd_2']}}
         main()
         call_count = len(client_mock.mock_calls) + len(tasks_mock.mock_calls)
-        self.assertEqual(call_count, 7)
+        self.assertEqual(call_count, 8)
+        write_circus_conf_mock.assert_called_once_with(envs={'env1': 'val1'})
         client_mock.assert_called_once_with('http://localhost', 'token')
         register_mock.assert_called_once_with('app1')
         save_apprc_mock.assert_called_once_with(register_mock.return_value)
@@ -99,11 +101,13 @@ class TestMain(unittest.TestCase):
         parse_apprc_mock.return_value = {'env1': 'val1'}
         exec_script_mock = tasks_mock.execute_start_script
         run_restart_hooks_mock = tasks_mock.run_restart_hooks
+        write_circus_conf_mock = tasks_mock.write_circus_conf
         load_yaml_mock = tasks_mock.load_app_yaml
         load_yaml_mock.return_value = {'hooks': {'build': ['cmd_1', 'cmd_2']}}
         main()
         call_count = len(client_mock.mock_calls) + len(tasks_mock.mock_calls)
-        self.assertEqual(call_count, 7)
+        self.assertEqual(call_count, 8)
+        write_circus_conf_mock.assert_called_once_with(envs={'env1': 'val1'})
         client_mock.assert_called_once_with('http://localhost', 'token')
         register_mock.assert_called_once_with('app1')
         parse_apprc_mock.assert_called_once_with()

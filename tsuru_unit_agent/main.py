@@ -15,6 +15,7 @@ def run_action(args):
     except ConnectionError:
         envs = tasks.parse_apprc_file()
     yaml_data = tasks.load_app_yaml()
+    tasks.write_circus_conf(envs=envs)
     tasks.run_restart_hooks('before', yaml_data, envs=envs)
     tasks.execute_start_script(args.start_cmd, envs=envs, with_shell=False)
     tasks.run_restart_hooks('after', yaml_data, envs=envs)
