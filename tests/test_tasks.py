@@ -300,7 +300,9 @@ uid = ubuntu
 gid = ubuntu
 working_dir = /home/application/current
 stdout_stream.class = tsuru.stream.Stream
+stdout_stream.watcher_name = web
 stderr_stream.class = tsuru.stream.Stream
+stderr_stream.watcher_name = web
 
 [watcher:worker]
 cmd = python run_my_worker.py
@@ -309,7 +311,9 @@ uid = ubuntu
 gid = ubuntu
 working_dir = /home/application/current
 stdout_stream.class = tsuru.stream.Stream
+stdout_stream.watcher_name = worker
 stderr_stream.class = tsuru.stream.Stream
+stderr_stream.watcher_name = worker
 """
         write_circus_conf(procfile_path=self.procfile_path, conf_path=self.conf_path,
                           envs={"PORT": "8888"})
@@ -326,7 +330,9 @@ uid = ubuntu
 gid = ubuntu
 working_dir = /home/application/current
 stdout_stream.class = tsuru.stream.Stream
+stdout_stream.watcher_name = web
 stderr_stream.class = tsuru.stream.Stream
+stderr_stream.watcher_name = web
 
 [watcher:worker]
 cmd = python run_my_worker.py
@@ -335,7 +341,9 @@ uid = ubuntu
 gid = ubuntu
 working_dir = /home/application/current
 stdout_stream.class = tsuru.stream.Stream
+stdout_stream.watcher_name = worker
 stderr_stream.class = tsuru.stream.Stream
+stderr_stream.watcher_name = worker
 """
         write_circus_conf(procfile_path=self.procfile_path, conf_path=self.conf_path,
                           envs={"PORT": "8888"})
@@ -362,7 +370,9 @@ uid = ubuntu
 gid = ubuntu
 working_dir = /home/application/current
 stdout_stream.class = tsuru.stream.Stream
+stdout_stream.watcher_name = web
 stderr_stream.class = tsuru.stream.Stream
+stderr_stream.watcher_name = web
 
 [watcher:worker]
 cmd = python run_my_worker.py
@@ -371,7 +381,9 @@ uid = ubuntu
 gid = ubuntu
 working_dir = /home/application/current
 stdout_stream.class = tsuru.stream.Stream
+stdout_stream.watcher_name = worker
 stderr_stream.class = tsuru.stream.Stream
+stderr_stream.watcher_name = worker
 """
         conf_path = self.conf_path + ".new"
         write_circus_conf(procfile_path=self.procfile_path,
@@ -394,7 +406,9 @@ uid = ubuntu
 gid = ubuntu
 working_dir = /tmp/app
 stdout_stream.class = tsuru.stream.Stream
+stdout_stream.watcher_name = web
 stderr_stream.class = tsuru.stream.Stream
+stderr_stream.watcher_name = web
 
 [watcher:worker]
 cmd = python run_my_worker.py
@@ -403,7 +417,9 @@ uid = ubuntu
 gid = ubuntu
 working_dir = /tmp/app
 stdout_stream.class = tsuru.stream.Stream
+stdout_stream.watcher_name = worker
 stderr_stream.class = tsuru.stream.Stream
+stderr_stream.watcher_name = worker
 """
         conf_path = self.conf_path + ".new"
         write_circus_conf(procfile_path=self.procfile_path,
@@ -425,7 +441,9 @@ uid = ubuntu
 gid = ubuntu
 working_dir = /home/application/current
 stdout_stream.class = tsuru.stream.Stream
+stdout_stream.watcher_name = web
 stderr_stream.class = tsuru.stream.Stream
+stderr_stream.watcher_name = web
 
 [watcher:worker]
 cmd = python run_their_worker.py
@@ -434,7 +452,9 @@ uid = ubuntu
 gid = ubuntu
 working_dir = /home/application/current
 stdout_stream.class = tsuru.stream.Stream
+stdout_stream.watcher_name = worker
 stderr_stream.class = tsuru.stream.Stream
+stderr_stream.watcher_name = worker
 """
         conf_path = self.conf_path + ".new"
         write_circus_conf(conf_path=conf_path, envs={"PORT": "8888"})

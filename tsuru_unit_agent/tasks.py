@@ -24,7 +24,9 @@ uid = {user}
 gid = {group}
 working_dir = {working_dir}
 stdout_stream.class = tsuru.stream.Stream
+stdout_stream.watcher_name = {name}
 stderr_stream.class = tsuru.stream.Stream
+stderr_stream.watcher_name = {name}
 """
 
 
