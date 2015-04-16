@@ -280,7 +280,7 @@ hooks:
 \t\t- foo_1
 \t\t- bar_2
         '''
-        with open(os.path.join(self.working_dir, "tsuru2.yaml"), "w") as f:
+        with open(os.path.join(self.working_dir, "tsuru.yaml"), "w") as f:
             f.write(broken_yaml)
         data = load_app_yaml(self.working_dir)
         self.assertDictEqual(data, {})
