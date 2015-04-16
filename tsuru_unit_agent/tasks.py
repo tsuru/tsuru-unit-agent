@@ -114,7 +114,7 @@ def load_app_yaml(working_dir="/home/application/current"):
             fullpath = os.path.join(working_dir, file_name)
             with codecs.open(fullpath, 'r', encoding='utf-8', errors='ignore') as f:
                 return yaml.load(f.read()) or {}
-        except IOError:
+        except (IOError, yaml.scanner.ScannerError):
             pass
     return {}
 
