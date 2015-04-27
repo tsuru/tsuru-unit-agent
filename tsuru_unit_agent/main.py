@@ -2,7 +2,7 @@ import sys
 import argparse
 from requests.exceptions import ConnectionError
 
-from tsuru_unit_agent import tasks
+from tsuru_unit_agent import heartbeat, tasks
 from tsuru_unit_agent.client import Client
 
 
@@ -22,6 +22,7 @@ def run_action(args):
 
 
 def deploy_action(args):
+    heartbeat.StderrHeartbeat().start()
     client = Client(args.url, args.token)
     envs = client.register_unit(args.app_name)
     tasks.save_apprc_file(envs)
