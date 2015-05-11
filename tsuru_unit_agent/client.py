@@ -36,12 +36,11 @@ class Client(object):
         return envs
 
     def post_app_yaml(self, app, data):
-        response = requests.post(
+        requests.post(
             "{}/apps/{}/customdata".format(self.url, app),
             data=json.dumps(data),
             headers={
                 "Authorization": "bearer {}".format(self.token),
                 "Content-Type": "application/json",
-            })
-        if not 200 <= response.status_code < 400:
-            raise Exception("invalid response {} - {}".format(response.status_code, response.text))
+            },
+        )
