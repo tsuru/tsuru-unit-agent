@@ -119,6 +119,12 @@ def load_app_yaml(working_dir="/home/application/current"):
     return {}
 
 
+def load_procfile(working_dir="/home/application/current"):
+    path = os.path.join(working_dir, "Procfile")
+    with codecs.open(path, "r", encoding="utf-8", errors="ignore") as f:
+        return f.read()
+
+
 def write_circus_conf(procfile_path=None, conf_path="/etc/circus/circus.ini",
                       envs=None):
     if not envs:

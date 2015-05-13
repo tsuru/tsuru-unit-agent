@@ -28,6 +28,7 @@ def deploy_action(args):
     tasks.save_apprc_file(envs)
     tasks.execute_start_script(args.start_cmd)
     yaml_data = tasks.load_app_yaml()
+    yaml_data["procfile"] = tasks.load_procfile()
     client.register_unit(args.app_name, yaml_data)
     client.post_app_yaml(args.app_name, yaml_data)
     tasks.run_build_hooks(yaml_data, envs=envs)
