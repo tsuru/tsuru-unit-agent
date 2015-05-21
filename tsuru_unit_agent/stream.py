@@ -9,6 +9,8 @@ import re
 import socket
 import os
 import threading
+import time
+import collections
 
 from socket import gethostname
 
@@ -49,7 +51,9 @@ class Stream(object):
             session.headers.update({"Authorization": "bearer " + token})
         maxsize = int(self.envs.get("LOG_MAX_QUEUE_SIZE", 1000))
         self.queue = Queue.Queue(maxsize=maxsize)
-        self.writer = TsuruLogWriter(session, self.queue)
+        rate_limit_window = self.envs.get("LOG_RATE_LIMIT_WINDOW")
+        rate_limit_count = self.envs.get("LOG_RATE_LIMIT_COUNT")
+        self.writer = TsuruLogWriter(session, self.queue, rate_limit_window, rate_limit_count)
         self.writer.start()
 
     def write(self, message):
@@ -138,12 +142,45 @@ class Stream(object):
         return result
 
 
+RATE_LIMITED = '["dropping messages, more than {} messages in last {} seconds"]'
+
+
 class TsuruLogWriter(threading.Thread):
 
-    def __init__(self, session, queue, *args, **kwargs):
+    def __init__(self, session, queue, rate_limit_window, rate_limit_count, *args, **kwargs):
         super(TsuruLogWriter, self).__init__(*args, **kwargs)
         self.queue = queue
         self.session = session
+        self.setup_rate_limiter(rate_limit_window, rate_limit_count)
+
+    def setup_rate_limiter(self, rate_limit_window, rate_limit_count):
+        self.rate_limit_enabled = rate_limit_window is not None and rate_limit_count is not None
+        if not self.rate_limit_enabled:
+            return
+        try:
+            self.rate_limit_window = int(rate_limit_window)
+            self.rate_limit_count = int(rate_limit_count)
+        except:
+            logging.exception(
+                "Invalid values for rate limiting env vars, window: '{}' count: '{}'"
+                .format(rate_limit_window, rate_limit_count)
+            )
+            self.rate_limit_enabled = False
+            return
+        self.rate_limit_notice = 0
+        self.rate_queue = collections.deque()
+
+    def should_accept_log(self):
+        if not self.rate_limit_enabled:
+            return True
+        now = time.time()
+        max_time = now - self.rate_limit_window
+        while len(self.rate_queue) > 0 and self.rate_queue[0] < max_time:
+            self.rate_queue.popleft()
+        if len(self.rate_queue) >= self.rate_limit_count:
+            return False
+        self.rate_queue.append(now)
+        return True
 
     def run(self):
         while True:
@@ -151,6 +188,16 @@ class TsuruLogWriter(threading.Thread):
                 entry = self.queue.get()
                 if entry == QUEUE_DONE_MESSAGE:
                     break
+                if not self.should_accept_log():
+                    now = time.time()
+                    if self.rate_limit_notice < now - self.rate_limit_window:
+                        msg = RATE_LIMITED.format(self.rate_limit_count, self.rate_limit_window)
+                        self.session.post(
+                            entry.url,
+                            data=msg,
+                            timeout=entry.timeout)
+                        self.rate_limit_notice = now
+                    continue
                 try:
                     self.session.post(entry.url, data=json.dumps(entry.messages),
                                       timeout=entry.timeout)

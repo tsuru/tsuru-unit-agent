@@ -6,8 +6,10 @@ import unittest
 import mock
 import logging
 import socket
+import Queue
+import time
 
-from tsuru_unit_agent.stream import Stream, QUEUE_DONE_MESSAGE
+from tsuru_unit_agent.stream import Stream, TsuruLogWriter, LogEntry, QUEUE_DONE_MESSAGE
 
 mocked_environ = {
     "TSURU_APPNAME": "appname1",
@@ -43,7 +45,7 @@ class StreamTestCase(unittest.TestCase):
             "name": "stdout"
         }
         self.stream = Stream(watcher_name="mywatcher")
-        TsuruLogWriter.assert_called_with(mock.ANY, self.stream.queue)
+        TsuruLogWriter.assert_called_with(mock.ANY, self.stream.queue, None, None)
         log_writer.start.assert_called_once()
 
     def tearDown(self):
@@ -140,6 +142,17 @@ class StreamTestCase(unittest.TestCase):
         self.assertEqual(syslog_port, "514")
         self.assertEqual(syslog_facility, "LOCAL0")
         self.assertEqual(syslog_socket, "udp")
+
+    @mock.patch("tsuru_unit_agent.stream.gethostname")
+    @mock.patch("tsuru_unit_agent.stream.TsuruLogWriter")
+    def test_envs_with_rate_limit(self, TsuruLogWriter, gethostname):
+        TsuruLogWriter.return_value = mock.Mock()
+        gethostname.return_value = "myhost"
+        stream = Stream(watcher_name="watcher", envs={
+            "LOG_RATE_LIMIT_WINDOW": "60",
+            "LOG_RATE_LIMIT_COUNT": "1000",
+        })
+        TsuruLogWriter.assert_called_with(mock.ANY, stream.queue, "60", "1000")
 
     @mock.patch("tsuru_unit_agent.stream.TsuruLogWriter")
     @mock.patch("os.environ", {})
@@ -252,3 +265,73 @@ class StreamTestCase(unittest.TestCase):
     def test_max_buffer_size_is_configurable(self, TsuruLogWriter):
         stream = Stream(max_buffer_size=500)
         self.assertEqual(500, stream._max_buffer_size)
+
+
+class TsuruLogWriterTestCase(unittest.TestCase):
+
+    def test_rate_limit(self):
+        session = mock.Mock()
+        queue = Queue.Queue(maxsize=1000)
+        writer = TsuruLogWriter(session, queue, 2, 10)
+        writer.start()
+        for i in xrange(20):
+            queue.put_nowait(LogEntry('url', 1, ['msg1']))
+        while not queue.empty():
+            time.sleep(0.01)
+        self.assertEqual(session.post.call_count, 11)
+        session.post.assert_any_call('url', data='["msg1"]', timeout=1)
+        session.post.assert_any_call(
+            'url',
+            data='["dropping messages, more than 10 messages in last 2 seconds"]', timeout=1
+        )
+        time.sleep(3)
+        for i in xrange(20):
+            queue.put_nowait(LogEntry('url', 1, ['msg2']))
+        queue.put_nowait(QUEUE_DONE_MESSAGE)
+        writer.join()
+        self.assertEqual(session.post.call_count, 22)
+        session.post.assert_any_call('url', data='["msg2"]', timeout=1)
+
+    def test_rate_limit_stress(self):
+        session = mock.Mock()
+        queue = Queue.Queue(maxsize=1000)
+        writer = TsuruLogWriter(session, queue, "2", "10")
+        writer.start()
+        t0 = time.time()
+        i = 0
+        while time.time() - t0 < 10:
+            i += 1
+            try:
+                queue.put_nowait(LogEntry('url', 1, ['msg-{}'.format(i)]))
+            except:
+                pass
+        while queue.full():
+            time.sleep(0.1)
+        queue.put_nowait(QUEUE_DONE_MESSAGE)
+        writer.join()
+        self.assertTrue(45 < session.post.call_count <= 66)
+        session.post.assert_any_call('url', data='["msg-1"]', timeout=1)
+
+    def test_rate_limit_not_configured(self):
+        session = mock.Mock()
+        queue = Queue.Queue(maxsize=1000)
+        writer = TsuruLogWriter(session, queue, None, None)
+        writer.start()
+        for i in xrange(100):
+            queue.put_nowait(LogEntry('url', 1, ['msg-1']))
+        queue.put_nowait(QUEUE_DONE_MESSAGE)
+        writer.join()
+        self.assertEqual(session.post.call_count, 100)
+        session.post.assert_called_with('url', data='["msg-1"]', timeout=1)
+
+    def test_rate_limit_invalid_config(self):
+        session = mock.Mock()
+        queue = Queue.Queue(maxsize=1000)
+        writer = TsuruLogWriter(session, queue, "", {})
+        writer.start()
+        for i in xrange(100):
+            queue.put_nowait(LogEntry('url', 1, ['msg-1']))
+        queue.put_nowait(QUEUE_DONE_MESSAGE)
+        writer.join()
+        self.assertEqual(session.post.call_count, 100)
+        session.post.assert_any_call('url', data='["msg-1"]', timeout=1)
