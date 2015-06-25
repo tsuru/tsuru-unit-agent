@@ -111,7 +111,7 @@ class RunHooksTest(TestCase):
         wait_mock.return_value = 0
         data = {"hooks": {"build": ["ble"]}}
         run_build_hooks(data, envs={'env': 'varrr'})
-        self.assertEqual(popen_call.call_args[0][0], 'ble')
+        self.assertEqual(popen_call.call_args[0][0], ['/bin/bash', '-lc', 'ble'])
         self.assertEqual(popen_call.call_args[1]['shell'], True)
         self.assertEqual(popen_call.call_args[1]['cwd'], '/')
         self.assertDictEqual(popen_call.call_args[1]['env'], {'env': 'varrr',
@@ -127,7 +127,7 @@ class RunHooksTest(TestCase):
         exists_mock.return_value = True
         data = {"hooks": {"build": ["ble"]}}
         run_build_hooks(data)
-        self.assertEqual(popen_call.call_args[0][0], 'ble')
+        self.assertEqual(popen_call.call_args[0][0], ['/bin/bash', '-lc', 'ble'])
         self.assertEqual(popen_call.call_args[1]['shell'], True)
         self.assertEqual(popen_call.call_args[1]['cwd'], '/home/application/current')
         self.assertDictEqual(popen_call.call_args[1]['env'], {})
@@ -142,7 +142,7 @@ class RunHooksTest(TestCase):
         wait_mock.return_value = 5
         data = {"hooks": {"build": ["ble"]}}
         run_build_hooks(data)
-        self.assertEqual(popen_call.call_args[0][0], 'ble')
+        self.assertEqual(popen_call.call_args[0][0], ['/bin/bash', '-lc', 'ble'])
         self.assertEqual(popen_call.call_args[1]['shell'], True)
         self.assertEqual(popen_call.call_args[1]['cwd'], '/')
         self.assertDictEqual(popen_call.call_args[1]['env'], {})
