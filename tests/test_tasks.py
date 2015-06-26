@@ -28,8 +28,7 @@ class TestTasks(TestCase):
         self.assertEqual(popen_mock.call_args[0][0], 'my_command')
         self.assertEqual(popen_mock.call_args[1]['shell'], True)
         self.assertEqual(popen_mock.call_args[1]['cwd'], '/')
-        self.assertDictEqual(popen_mock.call_args[1]['env'], {'env': 'varrr',
-                                                              'env1': 'var1'})
+        self.assertEqual(popen_mock.call_args[1]['env'], {'env': 'varrr', 'env1': 'var1'})
         wait_mock.assert_called_once_with()
 
     @mock.patch("os.environ", {'myenv': 'var', 'env1': 'var1'})
@@ -42,8 +41,8 @@ class TestTasks(TestCase):
         self.assertEqual(popen_mock.call_args[0][0], 'my_command')
         self.assertEqual(popen_mock.call_args[1]['shell'], True)
         self.assertEqual(popen_mock.call_args[1]['cwd'], '/')
-        self.assertDictEqual(popen_mock.call_args[1]['env'], {'myenv': 'varrr',
-                                                              'env1': 'var1'})
+        self.assertEqual(popen_mock.call_args[1]['env'], {'myenv': 'varrr',
+                                                          'env1': 'var1'})
         wait_mock.assert_called_once_with()
         exit_mock.assert_called_once_with(10)
 
@@ -74,7 +73,7 @@ class TestTasks(TestCase):
         for k, v in envs.items():
             if k not in expected:
                 envs.pop(k)
-        self.assertDictEqual(envs, expected)
+        self.assertEqual(envs, expected)
 
     def test_save_parse_apprc_escaping(self):
         expected = {
@@ -97,7 +96,7 @@ class TestTasks(TestCase):
             for k, v in envs.items():
                 if k not in expected:
                     envs.pop(k)
-            self.assertDictEqual(envs, expected)
+            self.assertEqual(envs, expected)
         finally:
             os.remove(path)
 
@@ -114,8 +113,8 @@ class RunHooksTest(TestCase):
         self.assertEqual(popen_call.call_args[0][0], ['/bin/bash', '-lc', 'ble'])
         self.assertEqual(popen_call.call_args[1]['shell'], False)
         self.assertEqual(popen_call.call_args[1]['cwd'], '/')
-        self.assertDictEqual(popen_call.call_args[1]['env'], {'env': 'varrr',
-                                                              'env1': 'var1'})
+        self.assertEqual(popen_call.call_args[1]['env'], {'env': 'varrr',
+                                                          'env1': 'var1'})
         wait_mock.assert_called_once_with()
 
     @mock.patch("os.environ", {})
@@ -130,7 +129,7 @@ class RunHooksTest(TestCase):
         self.assertEqual(popen_call.call_args[0][0], ['/bin/bash', '-lc', 'ble'])
         self.assertEqual(popen_call.call_args[1]['shell'], False)
         self.assertEqual(popen_call.call_args[1]['cwd'], '/home/application/current')
-        self.assertDictEqual(popen_call.call_args[1]['env'], {})
+        self.assertEqual(popen_call.call_args[1]['env'], {})
         wait_mock.assert_called_once_with()
         exists_mock.assert_called_once_with("/home/application/current")
 
@@ -145,7 +144,7 @@ class RunHooksTest(TestCase):
         self.assertEqual(popen_call.call_args[0][0], ['/bin/bash', '-lc', 'ble'])
         self.assertEqual(popen_call.call_args[1]['shell'], False)
         self.assertEqual(popen_call.call_args[1]['cwd'], '/')
-        self.assertDictEqual(popen_call.call_args[1]['env'], {})
+        self.assertEqual(popen_call.call_args[1]['env'], {})
         wait_mock.assert_called_once_with()
         exit_mock.assert_called_once_with(5)
 
@@ -186,8 +185,8 @@ class RunRestartHooksTest(TestCase):
         self.assertEqual(popen_call.call_args_list[0][0][0], 'b2')
         self.assertEqual(popen_call.call_args_list[0][1]['shell'], True)
         self.assertEqual(popen_call.call_args_list[0][1]['cwd'], '/')
-        self.assertDictEqual(popen_call.call_args_list[0][1]['env'], {'env': 'varrr',
-                                                                      'env1': 'var1'})
+        self.assertEqual(popen_call.call_args_list[0][1]['env'], {'env': 'varrr',
+                                                                  'env1': 'var1'})
         self.assertEqual(popen_call.call_args_list[1][0][0], 'b1')
         wait_mock.assert_any_call()
         run_restart_hooks('after', data)
@@ -209,13 +208,13 @@ class RunRestartHooksTest(TestCase):
             "before": ["b1"],
         }}}
         run_restart_hooks('before', data, envs={'env': 'varrr'})
-        self.assertDictEqual(os.environ, {'env': 'var', 'env1': 'var1'})
+        self.assertEqual(os.environ, {'env': 'var', 'env1': 'var1'})
         self.assertEqual(popen_call.call_count, 1)
         self.assertEqual(popen_call.call_args_list[0][0][0], 'b1')
         self.assertEqual(popen_call.call_args_list[0][1]['shell'], True)
         self.assertEqual(popen_call.call_args_list[0][1]['cwd'], '/')
-        self.assertDictEqual(popen_call.call_args_list[0][1]['env'], {'env': 'varrr',
-                                                                      'env1': 'var1'})
+        self.assertEqual(popen_call.call_args_list[0][1]['env'], {'env': 'varrr',
+                                                                  'env1': 'var1'})
         wait_mock.assert_called_once_with()
         self.assertEqual(stream_mock.call_count, 2)
         self.assertEqual(stream_mock.call_args_list[0][1]['echo_output'], sys.stdout)
@@ -259,20 +258,20 @@ hooks:
 
     def test_load_without_app_files(self):
         data = load_app_yaml(self.working_dir)
-        self.assertDictEqual(data, {})
+        self.assertEqual(data, {})
 
     def test_load_with_empty_yaml(self):
         with open(os.path.join(self.working_dir, "tsuru.yaml"), "w") as f:
             f.write("")
         data = load_app_yaml(self.working_dir)
-        self.assertDictEqual(data, {})
+        self.assertEqual(data, {})
         os.remove(os.path.join(self.working_dir, "tsuru.yaml"))
 
     def test_load_yaml_encoding(self):
         data = load_app_yaml(os.path.join(self.working_dir, "fixtures/iso88591"))
-        self.assertDictEqual(data, {"key": "x"})
+        self.assertEqual(data, {"key": "x"})
         data = load_app_yaml(os.path.join(self.working_dir, "fixtures/utf-8"))
-        self.assertDictEqual(data, {"key": u"áéíãôüx"})
+        self.assertEqual(data, {"key": u"áéíãôüx"})
 
     def test_load_broken_yaml(self):
         broken_yaml = '''
@@ -284,7 +283,7 @@ hooks:
         with open(os.path.join(self.working_dir, "tsuru.yaml"), "w") as f:
             f.write(broken_yaml)
         data = load_app_yaml(self.working_dir)
-        self.assertDictEqual(data, {})
+        self.assertEqual(data, {})
         os.remove(os.path.join(self.working_dir, "tsuru.yaml"))
 
 

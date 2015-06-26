@@ -8,17 +8,18 @@ from tsuru_unit_agent.stream import extract_message
 
 
 class ExtractMessageTestCase(unittest.TestCase):
+
     def test_extract_message_when_it_isnt_a_list(self):
         msg = 'Starting gunicorn 0.15.0'
         expected = 'Starting gunicorn 0.15.0'
         result = extract_message(msg)
-        self.assertListEqual([expected], result)
+        self.assertEqual([expected], result)
 
     def test_extract_message(self):
         msg = '2012-11-06 17:13:55 [12019] [INFO] Starting gunicorn 0.15.0'
         expected = 'Starting gunicorn 0.15.0'
         result = extract_message(msg)
-        self.assertListEqual([expected], result)
+        self.assertEqual([expected], result)
 
     def test_extract_multiline(self):
         msg = "2012-11-06 18:30:10 [13887] [INFO] Listening at: " \
@@ -35,4 +36,4 @@ class ExtractMessageTestCase(unittest.TestCase):
             "(most recent call last):\n",
         ]
         result = extract_message(msg)
-        self.assertListEqual(expected, result)
+        self.assertEqual(expected, result)
