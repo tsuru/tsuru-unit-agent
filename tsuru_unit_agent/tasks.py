@@ -97,7 +97,7 @@ def execute_start_script(start_cmd, envs=None, with_shell=True):
 def run_build_hooks(app_data, envs=None):
     commands = (app_data.get('hooks') or {}).get('build') or []
     commands = [["/bin/bash", "-lc", cmd] for cmd in commands]
-    exec_with_envs(commands, with_shell=True, envs=envs)
+    exec_with_envs(commands, with_shell=False, envs=envs)
 
 
 def run_restart_hooks(position, app_data, envs=None):
