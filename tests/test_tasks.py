@@ -59,7 +59,7 @@ class TestTasks(TestCase):
             self.assertEqual(len(write_mock.mock_calls), 3)
 
     def test_parse_apprc_file(self):
-        path = os.path.join(os.path.dirname(__file__), "fixtures", "apprc")
+        path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "fixtures", "apprc")
         envs = parse_apprc_file(path)
         expected = {
             "A": "B",
@@ -89,7 +89,7 @@ class TestTasks(TestCase):
             "EXEC": "a: `echo hey` b: $(echo again)",
             "MULTILINE": "my\nmulti\"line\", with ' quotes ' yay'\nvariable'\n'",
         }
-        path = os.path.join(os.path.dirname(__file__), "fixtures", "written_apprc")
+        path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "fixtures", "written_apprc")
         try:
             save_apprc_file(expected, file_path=path)
             envs = parse_apprc_file(path)
