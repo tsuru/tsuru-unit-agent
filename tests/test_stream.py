@@ -4,7 +4,6 @@
 
 import unittest
 import mock
-import logging
 import socket
 import Queue
 import time
@@ -45,7 +44,8 @@ class StreamTestCase(unittest.TestCase):
             "name": "stdout"
         }
         self.stream = Stream(watcher_name="mywatcher")
-        TsuruLogWriter.assert_called_with(mock.ANY, self.stream.queue, None, None)
+        TsuruLogWriter.assert_called_with(
+            mock.ANY, self.stream.queue, None, None, 'host2', '514', 'LOCAL0', 'udp', 'appname1')
         log_writer.start.assert_called_once()
 
     def tearDown(self):
@@ -71,43 +71,23 @@ class StreamTestCase(unittest.TestCase):
         self.assertEqual(2, entry.timeout)
         self.assertEqual([expected_msg], entry.messages)
 
-    @mock.patch("logging.getLogger")
-    @mock.patch("logging.handlers.SysLogHandler")
-    def test_should_send_log_to_syslog_as_info(self, s_handler, logger):
+    def test_should_send_log_to_syslog_as_info(self):
         self.stream(self.data["stdout"])
         (appname, host, token, syslog_server,
          syslog_port, syslog_facility, syslog_socket) = self.stream._load_envs()
-        my_logger = logger(appname)
-        log_handler = s_handler(address=(syslog_server, syslog_port),
-                                facility=syslog_facility,
-                                socktype=syslog_socket)
         expected_msg = "Starting gunicorn 0.15.0\n"
-        my_logger.addHandler(log_handler)
-        my_logger.info.assert_called_with(expected_msg)
+        entry = self.stream.queue.get()
+        self.assertEqual(entry.messages, [expected_msg])
+        self.assertEqual(entry.stream_name, "stdout")
 
-    @mock.patch("logging.getLogger")
-    @mock.patch("tsuru_unit_agent.syslog.SysLogHandler")
-    def test_should_send_log_to_syslog_as_error(self, s_handler, logger):
-        s_handler.return_value = syslog = mock.Mock()
+    def test_should_send_log_to_syslog_as_error(self):
         self.stream(self.data["stderr"])
         (appname, host, token, syslog_server,
          syslog_port, syslog_facility, syslog_socket) = self.stream._load_envs()
-        my_logger = logger(appname)
-        s_handler.assert_called_with(address=(syslog_server, int(syslog_port)),
-                                     facility=syslog_facility,
-                                     socktype=socket.SOCK_DGRAM)
-        my_logger.addHandler.assert_called_with(syslog)
-        my_logger.error.assert_called_with("Error starting gunicorn\n")
-
-    def test_should_send_log_to_syslog_and_use_one_handler(self):
-        self.stream(self.data["stderr"])
-        self.stream(self.data["stderr"])
-        self.stream(self.data["stderr"])
-        self.stream(self.data["stderr"])
-        (appname, host, token, syslog_server,
-         syslog_port, syslog_facility, syslog_socket) = self.stream._load_envs()
-        my_logger = logging.getLogger(appname)
-        self.assertEqual(len(my_logger.handlers), 1)
+        expected_msg = "Error starting gunicorn\n"
+        entry = self.stream.queue.get()
+        self.assertEqual(entry.messages, [expected_msg])
+        self.assertEqual(entry.stream_name, "stderr")
 
     @mock.patch("tsuru_unit_agent.stream.gethostname")
     @mock.patch("tsuru_unit_agent.stream.TsuruLogWriter")
@@ -152,7 +132,8 @@ class StreamTestCase(unittest.TestCase):
             "LOG_RATE_LIMIT_WINDOW": "60",
             "LOG_RATE_LIMIT_COUNT": "1000",
         })
-        TsuruLogWriter.assert_called_with(mock.ANY, stream.queue, "60", "1000")
+        TsuruLogWriter.assert_called_with(
+            mock.ANY, stream.queue, "60", "1000", 'host2', '514', 'LOCAL0', 'udp', 'appname1')
 
     @mock.patch("tsuru_unit_agent.stream.TsuruLogWriter")
     @mock.patch("os.environ", {})
@@ -272,10 +253,10 @@ class TsuruLogWriterTestCase(unittest.TestCase):
     def test_rate_limit(self):
         session = mock.Mock()
         queue = Queue.Queue(maxsize=1000)
-        writer = TsuruLogWriter(session, queue, 2, 10)
+        writer = TsuruLogWriter(session, queue, 2, 10, None, None, None, None, None)
         writer.start()
         for i in xrange(20):
-            queue.put_nowait(LogEntry('url', 1, ['msg1']))
+            queue.put_nowait(LogEntry('url', 1, ['msg1'], None))
         while not queue.empty():
             time.sleep(0.01)
         self.assertEqual(session.post.call_count, 11)
@@ -286,7 +267,7 @@ class TsuruLogWriterTestCase(unittest.TestCase):
         )
         time.sleep(3)
         for i in xrange(20):
-            queue.put_nowait(LogEntry('url', 1, ['msg2']))
+            queue.put_nowait(LogEntry('url', 1, ['msg2'], None))
         queue.put_nowait(QUEUE_DONE_MESSAGE)
         writer.join()
         self.assertEqual(session.post.call_count, 22)
@@ -295,14 +276,14 @@ class TsuruLogWriterTestCase(unittest.TestCase):
     def test_rate_limit_stress(self):
         session = mock.Mock()
         queue = Queue.Queue(maxsize=1000)
-        writer = TsuruLogWriter(session, queue, "2", "10")
+        writer = TsuruLogWriter(session, queue, "2", "10", None, None, None, None, None)
         writer.start()
         t0 = time.time()
         i = 0
         while time.time() - t0 < 10:
             i += 1
             try:
-                queue.put_nowait(LogEntry('url', 1, ['msg-{}'.format(i)]))
+                queue.put_nowait(LogEntry('url', 1, ['msg-{}'.format(i)], None))
             except:
                 pass
         while queue.full():
@@ -315,10 +296,10 @@ class TsuruLogWriterTestCase(unittest.TestCase):
     def test_rate_limit_not_configured(self):
         session = mock.Mock()
         queue = Queue.Queue(maxsize=1000)
-        writer = TsuruLogWriter(session, queue, None, None)
+        writer = TsuruLogWriter(session, queue, None, None, None, None, None, None, None)
         writer.start()
         for i in xrange(100):
-            queue.put_nowait(LogEntry('url', 1, ['msg-1']))
+            queue.put_nowait(LogEntry('url', 1, ['msg-1'], None))
         queue.put_nowait(QUEUE_DONE_MESSAGE)
         writer.join()
         self.assertEqual(session.post.call_count, 100)
@@ -327,11 +308,55 @@ class TsuruLogWriterTestCase(unittest.TestCase):
     def test_rate_limit_invalid_config(self):
         session = mock.Mock()
         queue = Queue.Queue(maxsize=1000)
-        writer = TsuruLogWriter(session, queue, "", {})
+        writer = TsuruLogWriter(session, queue, "", {}, None, None, None, None, None)
         writer.start()
         for i in xrange(100):
-            queue.put_nowait(LogEntry('url', 1, ['msg-1']))
+            queue.put_nowait(LogEntry('url', 1, ['msg-1'], None))
         queue.put_nowait(QUEUE_DONE_MESSAGE)
         writer.join()
         self.assertEqual(session.post.call_count, 100)
         session.post.assert_any_call('url', data='["msg-1"]', timeout=1)
+
+    @mock.patch("logging.getLogger")
+    @mock.patch("tsuru_unit_agent.syslog.SysLogHandler")
+    def test_send_log_to_syslog_as_info(self, s_handler, logger):
+        s_handler.return_value = syslog = mock.Mock()
+        session = mock.Mock()
+        queue = Queue.Queue(maxsize=1000)
+        writer = TsuruLogWriter(session, queue, "", {}, 'host2', '514', 'LOCAL0', 'udp', 'appname1')
+        writer.start()
+        for i in xrange(10):
+            queue.put_nowait(LogEntry('url', 1, ['msg-1'], 'stdout'))
+        queue.put_nowait(QUEUE_DONE_MESSAGE)
+        writer.join()
+        self.assertEqual(session.post.call_count, 10)
+        session.post.assert_any_call('url', data='["msg-1"]', timeout=1)
+        logger.assert_called_with('appname1')
+        my_logger = logger.return_value
+        s_handler.assert_called_with(address=('host2', 514),
+                                     facility='LOCAL0',
+                                     socktype=socket.SOCK_DGRAM)
+        my_logger.addHandler.assert_called_with(syslog)
+        my_logger.info.assert_called_with("msg-1")
+
+    @mock.patch("logging.getLogger")
+    @mock.patch("tsuru_unit_agent.syslog.SysLogHandler")
+    def test_send_log_to_syslog_as_error(self, s_handler, logger):
+        s_handler.return_value = syslog = mock.Mock()
+        session = mock.Mock()
+        queue = Queue.Queue(maxsize=1000)
+        writer = TsuruLogWriter(session, queue, "", {}, 'host2', '514', 'LOCAL0', 'udp', 'appname1')
+        writer.start()
+        for i in xrange(10):
+            queue.put_nowait(LogEntry('url', 1, ['msg-1'], 'stderr'))
+        queue.put_nowait(QUEUE_DONE_MESSAGE)
+        writer.join()
+        self.assertEqual(session.post.call_count, 10)
+        session.post.assert_any_call('url', data='["msg-1"]', timeout=1)
+        logger.assert_called_with('appname1')
+        my_logger = logger.return_value
+        s_handler.assert_called_with(address=('host2', 514),
+                                     facility='LOCAL0',
+                                     socktype=socket.SOCK_DGRAM)
+        my_logger.addHandler.assert_called_with(syslog)
+        my_logger.error.assert_called_with("msg-1")
