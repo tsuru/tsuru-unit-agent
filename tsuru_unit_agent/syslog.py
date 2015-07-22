@@ -9,6 +9,10 @@ from logging import handlers
 
 class SysLogHandler(handlers.SysLogHandler):
 
+    def __init__(self, *args, **kwargs):
+        super(SysLogHandler, self).__init__(*args, **kwargs)
+        self.socket.settimeout(1)
+
     def emit(self, record, retry=True):
         msg = self.format(record) + '\000'
         prio = '<%d>' % self.encodePriority(self.facility,
@@ -32,6 +36,7 @@ class SysLogHandler(handlers.SysLogHandler):
                 except socket.error:
                     if retry:
                         self.socket = socket.socket(socket.AF_INET, self.socktype)
+                        self.socket.settimeout(1)
                         self.socket.connect(self.address)
                         self.emit(record, retry=False)
         except (KeyboardInterrupt, SystemExit):
