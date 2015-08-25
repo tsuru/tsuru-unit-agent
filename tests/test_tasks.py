@@ -182,17 +182,17 @@ class RunRestartHooksTest(TestCase):
         }}}
         run_restart_hooks('before', data, envs={'env': 'varrr'})
         self.assertEqual(popen_call.call_count, 2)
-        self.assertEqual(popen_call.call_args_list[0][0][0], 'b2')
-        self.assertEqual(popen_call.call_args_list[0][1]['shell'], True)
+        self.assertEqual(popen_call.call_args_list[0][0][0], ['/bin/bash', '-lc', 'b2'])
+        self.assertEqual(popen_call.call_args_list[0][1]['shell'], False)
         self.assertEqual(popen_call.call_args_list[0][1]['cwd'], '/')
         self.assertEqual(popen_call.call_args_list[0][1]['env'], {'env': 'varrr',
                                                                   'env1': 'var1'})
-        self.assertEqual(popen_call.call_args_list[1][0][0], 'b1')
+        self.assertEqual(popen_call.call_args_list[1][0][0], ['/bin/bash', '-lc', 'b1'])
         wait_mock.assert_any_call()
         run_restart_hooks('after', data)
         self.assertEqual(popen_call.call_count, 4)
-        self.assertEqual(popen_call.call_args_list[3][0][0], 'a1')
-        self.assertEqual(popen_call.call_args_list[2][0][0], 'a2')
+        self.assertEqual(popen_call.call_args_list[3][0][0], ['/bin/bash', '-lc', 'a1'])
+        self.assertEqual(popen_call.call_args_list[2][0][0], ['/bin/bash', '-lc', 'a2'])
 
     @mock.patch("tsuru_unit_agent.tasks.Stream")
     @mock.patch("os.environ", {'env': 'var', 'env1': 'var1'})
@@ -210,8 +210,8 @@ class RunRestartHooksTest(TestCase):
         run_restart_hooks('before', data, envs={'env': 'varrr'})
         self.assertEqual(os.environ, {'env': 'var', 'env1': 'var1'})
         self.assertEqual(popen_call.call_count, 1)
-        self.assertEqual(popen_call.call_args_list[0][0][0], 'b1')
-        self.assertEqual(popen_call.call_args_list[0][1]['shell'], True)
+        self.assertEqual(popen_call.call_args_list[0][0][0], ['/bin/bash', '-lc', 'b1'])
+        self.assertEqual(popen_call.call_args_list[0][1]['shell'], False)
         self.assertEqual(popen_call.call_args_list[0][1]['cwd'], '/')
         self.assertEqual(popen_call.call_args_list[0][1]['env'], {'env': 'varrr',
                                                                   'env1': 'var1'})

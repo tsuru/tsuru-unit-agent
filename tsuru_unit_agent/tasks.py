@@ -94,18 +94,21 @@ def execute_start_script(start_cmd, envs=None, with_shell=True):
     exec_with_envs([start_cmd], with_shell=with_shell, envs=envs)
 
 
+def execute_hooks_scripts(hook_cmd_list, envs=None, with_shell=True, pipe_output=False):
+    commands = [["/bin/bash", "-lc", cmd] for cmd in hook_cmd_list]
+    exec_with_envs(commands, with_shell=with_shell, envs=envs, pipe_output=pipe_output)
+
+
 def run_build_hooks(app_data, envs=None):
     commands = (app_data.get('hooks') or {}).get('build') or []
-    commands = [["/bin/bash", "-lc", cmd] for cmd in commands]
-    exec_with_envs(commands, with_shell=False, envs=envs)
+    execute_hooks_scripts(commands, with_shell=False, envs=envs)
 
 
 def run_restart_hooks(position, app_data, envs=None):
     restart_hook = (app_data.get('hooks') or {}).get('restart') or {}
     commands = restart_hook.get('{}-each'.format(position)) or []
     commands += restart_hook.get(position) or []
-    exec_with_envs(commands, with_shell=True, pipe_output=True,
-                   envs=envs)
+    execute_hooks_scripts(commands, with_shell=False, envs=envs, pipe_output=True)
 
 
 def load_app_yaml(working_dir="/home/application/current"):
