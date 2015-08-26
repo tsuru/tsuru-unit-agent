@@ -1,6 +1,8 @@
 tsuru-unit-agent
 ================
 
+[![Build Status](https://travis-ci.org/tsuru/tsuru-unit-agent.svg)](https://travis-ci.org/tsuru/tsuru-unit-agent)
+
 roadmap 0
 ---------
 
