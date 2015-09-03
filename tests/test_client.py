@@ -14,13 +14,14 @@ class TestClient(unittest.TestCase):
     @mock.patch("requests.post")
     def test_register_unit(self, post_mock):
         response = post_mock.return_value
+        response.headers = {"supported-tsuru": "0.17.0"}
         response.status_code = 200
         response.json.return_value = [
             {'name': 'var1', 'value': 'var2'},
             {'name': 'var3', 'value': 'var4'},
         ]
         client = Client("http://localhost", "token")
-        envs = client.register_unit("myapp")
+        envs, supported_tsuru = client.register_unit("myapp")
         post_mock.assert_called_with(
             "{}/apps/myapp/units/register".format(client.url),
             data={"hostname": gethostname()},
@@ -29,17 +30,19 @@ class TestClient(unittest.TestCase):
         self.assertEqual(envs['var3'], 'var4')
         self.assertEqual(envs['port'], '8888')
         self.assertEqual(envs['PORT'], '8888')
+        self.assertEqual("0.17.0", supported_tsuru)
 
     @mock.patch("requests.post")
     def test_register_unit_with_customdata(self, post_mock):
         response = post_mock.return_value
+        response.headers = {"supported-tsuru": "0.17.1"}
         response.status_code = 200
         response.json.return_value = [
             {'name': 'var1', 'value': 'var2'},
             {'name': 'var3', 'value': 'var4'},
         ]
         client = Client("http://localhost", "token")
-        envs = client.register_unit("myapp", {"mykey": ["val1", "val2"]})
+        envs, supported_tsuru = client.register_unit("myapp", {"mykey": ["val1", "val2"]})
         post_mock.assert_called_with(
             "{}/apps/myapp/units/register".format(client.url),
             data={
@@ -51,6 +54,31 @@ class TestClient(unittest.TestCase):
         self.assertEqual(envs['var3'], 'var4')
         self.assertEqual(envs['port'], '8888')
         self.assertEqual(envs['PORT'], '8888')
+        self.assertEqual("0.17.1", supported_tsuru)
+
+    @mock.patch("requests.post")
+    def test_register_unit_no_supported_tsuru_header(self, post_mock):
+        response = post_mock.return_value
+        response.headers = {}
+        response.status_code = 200
+        response.json.return_value = [
+            {'name': 'var1', 'value': 'var2'},
+            {'name': 'var3', 'value': 'var4'},
+        ]
+        client = Client("http://localhost", "token")
+        envs, supported_tsuru = client.register_unit("myapp", {"mykey": ["val1", "val2"]})
+        post_mock.assert_called_with(
+            "{}/apps/myapp/units/register".format(client.url),
+            data={
+                "hostname": gethostname(),
+                "customdata": '{"mykey": ["val1", "val2"]}'
+            },
+            headers={"Authorization": "bearer token"})
+        self.assertEqual(envs['var1'], 'var2')
+        self.assertEqual(envs['var3'], 'var4')
+        self.assertEqual(envs['port'], '8888')
+        self.assertEqual(envs['PORT'], '8888')
+        self.assertEqual("0.0.0", supported_tsuru)
 
     @mock.patch("requests.get")
     @mock.patch("requests.post")
@@ -59,13 +87,14 @@ class TestClient(unittest.TestCase):
         response.status_code = 404
         response.json.return_value = None
         get_response = get_mock.return_value
+        get_response.headers = {"supported-tsuru": "0.17.1"}
         get_response.status_code = 200
         get_response.json.return_value = [
             {'name': 'var1', 'value': 'var2'},
             {'name': 'var3', 'value': 'var4'},
         ]
         client = Client("http://localhost", "token")
-        envs = client.register_unit(app="myapp")
+        envs, supported_tsuru = client.register_unit(app="myapp")
         post_mock.assert_called_once_with(
             "{}/apps/myapp/units/register".format(client.url),
             data={"hostname": gethostname()},
@@ -77,6 +106,7 @@ class TestClient(unittest.TestCase):
         self.assertEqual(envs['var3'], 'var4')
         self.assertEqual(envs['port'], '8888')
         self.assertEqual(envs['PORT'], '8888')
+        self.assertEqual("0.17.1", supported_tsuru)
 
     @mock.patch("requests.get")
     @mock.patch("requests.post")

@@ -1,5 +1,8 @@
-import sys
 import argparse
+import sys
+
+import semantic_version
+
 from requests.exceptions import ConnectionError
 
 from tsuru_unit_agent import heartbeat, tasks
@@ -10,8 +13,8 @@ def run_action(args):
     client = Client(args.url, args.token)
     envs = None
     try:
-        envs = client.register_unit(args.app_name)
-        tasks.save_apprc_file(envs)
+        envs, supported_tsuru = client.register_unit(args.app_name)
+        save_apprc_file(envs, supported_tsuru)
     except ConnectionError:
         envs = tasks.parse_apprc_file()
     yaml_data = tasks.load_app_yaml()
@@ -24,8 +27,8 @@ def run_action(args):
 def deploy_action(args):
     heartbeat.StderrHeartbeat().start()
     client = Client(args.url, args.token)
-    envs = client.register_unit(args.app_name)
-    tasks.save_apprc_file(envs)
+    envs, supported_tsuru = client.register_unit(args.app_name)
+    save_apprc_file(envs, supported_tsuru)
     tasks.execute_start_script(args.start_cmd)
     yaml_data = tasks.load_app_yaml()
     client.post_app_yaml(args.app_name, yaml_data)
@@ -33,6 +36,13 @@ def deploy_action(args):
     yaml_data["procfile"] = tasks.load_procfile()
     client.register_unit(args.app_name, yaml_data)
     tasks.write_circus_conf(envs=envs)
+
+
+def save_apprc_file(envs, supported_tsuru):
+    no_apprc_version = semantic_version.Version("0.17.0")
+    supported_version = semantic_version.Version(supported_tsuru)
+    if supported_version < no_apprc_version:
+        tasks.save_apprc_file(envs)
 
 
 actions = {

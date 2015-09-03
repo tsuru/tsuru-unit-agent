@@ -33,7 +33,7 @@ class Client(object):
         # TODO(fss): tsuru should handle this, see
         # https://github.com/tsuru/tsuru/issues/995.
         envs["port"] = envs["PORT"] = "8888"
-        return envs
+        return envs, response.headers.get("supported-tsuru", "0.0.0")
 
     def post_app_yaml(self, app, data):
         requests.post(
