@@ -41,8 +41,11 @@ def deploy_action(args):
 def save_apprc_file(envs, supported_tsuru):
     no_apprc_version = semantic_version.Version("0.17.0")
     supported_version = semantic_version.Version(supported_tsuru)
+    port_envs = {"port": "8888", "PORT": "8888"}
     if supported_version < no_apprc_version:
         tasks.save_apprc_file(envs)
+    else:
+        tasks.save_apprc_file(port_envs)
 
 
 actions = {
