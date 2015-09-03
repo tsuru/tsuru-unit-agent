@@ -30,8 +30,6 @@ class Client(object):
             raise Exception("invalid response {} - {}".format(response.status_code, response.text))
         tsuru_envs = response.json()
         envs = {env['name']: env['value'] for env in tsuru_envs}
-        # TODO(fss): tsuru should handle this, see
-        # https://github.com/tsuru/tsuru/issues/995.
         envs["port"] = envs["PORT"] = "8888"
         return envs, response.headers.get("supported-tsuru", "0.0.0")
 
