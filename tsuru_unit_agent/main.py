@@ -1,4 +1,5 @@
 import argparse
+import os
 import sys
 
 import semantic_version
@@ -7,6 +8,8 @@ from requests.exceptions import ConnectionError
 
 from tsuru_unit_agent import heartbeat, tasks
 from tsuru_unit_agent.client import Client
+
+TEMP_ENV_FILE = "/tmp/app_envs"
 
 
 def run_action(args):
@@ -22,6 +25,7 @@ def run_action(args):
     tasks.run_restart_hooks('before', yaml_data, envs=envs)
     tasks.execute_start_script(args.start_cmd, envs=envs, with_shell=False)
     tasks.run_restart_hooks('after', yaml_data, envs=envs)
+    remove_temp_env_file()
 
 
 def deploy_action(args):
@@ -33,6 +37,7 @@ def deploy_action(args):
     yaml_data = tasks.load_app_yaml()
     client.post_app_yaml(args.app_name, yaml_data)
     tasks.run_build_hooks(yaml_data, envs=envs)
+    remove_temp_env_file()
     yaml_data["procfile"] = tasks.load_procfile()
     client.register_unit(args.app_name, yaml_data)
     tasks.write_circus_conf(envs=envs)
@@ -46,6 +51,14 @@ def save_apprc_file(envs, supported_tsuru):
         tasks.save_apprc_file(envs)
     else:
         tasks.save_apprc_file(port_envs)
+        tasks.save_apprc_file(envs, file_path=TEMP_ENV_FILE)
+
+
+def remove_temp_env_file():
+    try:
+        os.unlink(TEMP_ENV_FILE)
+    except OSError:
+        pass
 
 
 actions = {

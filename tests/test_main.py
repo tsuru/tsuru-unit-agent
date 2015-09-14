@@ -2,7 +2,7 @@ import unittest
 import mock
 
 from requests.exceptions import ConnectionError
-from tsuru_unit_agent.main import parse_args, main
+from tsuru_unit_agent.main import parse_args, main, TEMP_ENV_FILE
 
 
 class TestMain(unittest.TestCase):
@@ -69,7 +69,8 @@ class TestMain(unittest.TestCase):
     @mock.patch('sys.argv', ['', 'http://localhost', 'token', 'app1', 'mycmd', 'deploy'])
     @mock.patch('tsuru_unit_agent.main.tasks')
     @mock.patch('tsuru_unit_agent.main.Client')
-    def test_main_deploy_action_no_apprc(self, client_mock, tasks_mock):
+    @mock.patch('os.unlink')
+    def test_main_deploy_action_no_apprc(self, unlink_mock, client_mock, tasks_mock):
         register_mock = client_mock.return_value.register_unit
         register_mock.return_value = ({'env1': 'val1', 'port': '8888', 'PORT': '8888'}, "0.17.0")
         exec_script_mock = tasks_mock.execute_start_script
@@ -83,13 +84,17 @@ class TestMain(unittest.TestCase):
         save_apprc_mock = tasks_mock.save_apprc_file
         main()
         call_count = len(client_mock.mock_calls) + len(tasks_mock.mock_calls)
-        self.assertEqual(call_count, 10)
+        self.assertEqual(call_count, 11)
         client_mock.assert_called_once_with('http://localhost', 'token')
         register_mock.assert_any_call('app1')
         v = load_yaml_mock.return_value
         v['procfile'] = load_procfile_mock.return_value
         register_mock.assert_any_call('app1', v)
-        save_apprc_mock.assert_called_once_with({'port': '8888', 'PORT': '8888'})
+        expected_calls = [mock.call({'port': '8888', 'PORT': '8888'}),
+                          mock.call({'env1': 'val1', 'port': '8888', 'PORT': '8888'},
+                                    file_path=TEMP_ENV_FILE)]
+        self.assertEqual(expected_calls, save_apprc_mock.mock_calls)
+        unlink_mock.assert_called_once_with(TEMP_ENV_FILE)
         exec_script_mock.assert_called_once_with('mycmd')
         load_yaml_mock.assert_called_once_with()
         write_circus_conf_mock.assert_called_once_with(envs=register_mock.return_value[0])
@@ -126,7 +131,8 @@ class TestMain(unittest.TestCase):
     @mock.patch('sys.argv', ['', 'http://localhost', 'token', 'app1', 'mycmd', 'run'])
     @mock.patch('tsuru_unit_agent.main.tasks')
     @mock.patch('tsuru_unit_agent.main.Client')
-    def test_main_run_action_no_apprc(self, client_mock, tasks_mock):
+    @mock.patch('os.unlink')
+    def test_main_run_action_no_apprc(self, unlink_mock, client_mock, tasks_mock):
         register_mock = client_mock.return_value.register_unit
         register_mock.return_value = ({'env1': 'val1', 'port': '8888', 'PORT': '8888'}, "0.17.1")
         save_apprc_mock = tasks_mock.save_apprc_file
@@ -137,11 +143,15 @@ class TestMain(unittest.TestCase):
         load_yaml_mock.return_value = {'hooks': {'build': ['cmd_1', 'cmd_2']}}
         main()
         call_count = len(client_mock.mock_calls) + len(tasks_mock.mock_calls)
-        self.assertEqual(call_count, 8)
+        self.assertEqual(call_count, 9)
         write_circus_conf_mock.assert_called_once_with(envs=register_mock.return_value[0])
         client_mock.assert_called_once_with('http://localhost', 'token')
         register_mock.assert_called_once_with('app1')
-        save_apprc_mock.assert_called_once_with({'port': '8888', 'PORT': '8888'})
+        expected_calls = [mock.call({'port': '8888', 'PORT': '8888'}),
+                          mock.call({'env1': 'val1', 'port': '8888', 'PORT': '8888'},
+                                    file_path=TEMP_ENV_FILE)]
+        self.assertEqual(expected_calls, save_apprc_mock.mock_calls)
+        unlink_mock.assert_called_once_with(TEMP_ENV_FILE)
         exec_script_mock.assert_called_once_with('mycmd', envs=register_mock.return_value[0],
                                                  with_shell=False)
         load_yaml_mock.assert_called_once_with()
