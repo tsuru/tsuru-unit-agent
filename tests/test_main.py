@@ -47,16 +47,20 @@ class TestMain(unittest.TestCase):
         post_app_yaml_mock = client_mock.return_value.post_app_yaml
         load_procfile_mock = tasks_mock.load_procfile
         load_procfile_mock.return_value = 'web: python myproject.py\nworker: ./startworker'
+        parse_procfile_mock = tasks_mock.parse_procfile
+        parse_procfile_mock.return_value = {'web': 'python myproject.py',
+                                            'worker': './startworker'}
         run_build_hooks_mock = tasks_mock.run_build_hooks
         write_circus_conf_mock = tasks_mock.write_circus_conf
         save_apprc_mock = tasks_mock.save_apprc_file
         main()
         call_count = len(client_mock.mock_calls) + len(tasks_mock.mock_calls)
-        self.assertEqual(call_count, 10)
+        self.assertEqual(call_count, 11)
         client_mock.assert_called_once_with('http://localhost', 'token')
         register_mock.assert_any_call('app1')
         v = load_yaml_mock.return_value
         v['procfile'] = load_procfile_mock.return_value
+        v['processes'] = parse_procfile_mock.return_value
         register_mock.assert_any_call('app1', v)
         save_apprc_mock.assert_called_once_with(register_mock.return_value[0])
         exec_script_mock.assert_called_once_with('mycmd')
@@ -79,16 +83,20 @@ class TestMain(unittest.TestCase):
         post_app_yaml_mock = client_mock.return_value.post_app_yaml
         load_procfile_mock = tasks_mock.load_procfile
         load_procfile_mock.return_value = 'web: python myproject.py\nworker: ./startworker'
+        parse_procfile_mock = tasks_mock.parse_procfile
+        parse_procfile_mock.return_value = {'web': 'python myproject.py',
+                                            'worker': './startworker'}
         run_build_hooks_mock = tasks_mock.run_build_hooks
         write_circus_conf_mock = tasks_mock.write_circus_conf
         save_apprc_mock = tasks_mock.save_apprc_file
         main()
         call_count = len(client_mock.mock_calls) + len(tasks_mock.mock_calls)
-        self.assertEqual(call_count, 11)
+        self.assertEqual(call_count, 12)
         client_mock.assert_called_once_with('http://localhost', 'token')
         register_mock.assert_any_call('app1')
         v = load_yaml_mock.return_value
         v['procfile'] = load_procfile_mock.return_value
+        v['processes'] = parse_procfile_mock.return_value
         register_mock.assert_any_call('app1', v)
         expected_calls = [mock.call({'port': '8888', 'PORT': '8888'}),
                           mock.call({'env1': 'val1', 'port': '8888', 'PORT': '8888'},

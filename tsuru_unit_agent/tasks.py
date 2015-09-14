@@ -129,6 +129,11 @@ def load_procfile(working_dir="/home/application/current"):
         return f.read()
 
 
+def parse_procfile(working_dir="/home/application/current"):
+    file = procfile.Procfile(load_procfile(working_dir))
+    return dict(file.commands)
+
+
 def write_circus_conf(procfile_path=None, conf_path="/etc/circus/circus.ini",
                       envs=None):
     if not envs:

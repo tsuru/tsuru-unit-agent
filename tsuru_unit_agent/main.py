@@ -39,6 +39,7 @@ def deploy_action(args):
     tasks.run_build_hooks(yaml_data, envs=envs)
     remove_temp_env_file()
     yaml_data["procfile"] = tasks.load_procfile()
+    yaml_data["processes"] = tasks.parse_procfile()
     client.register_unit(args.app_name, yaml_data)
     tasks.write_circus_conf(envs=envs)
 

@@ -9,10 +9,11 @@ from tsuru_unit_agent.tasks import (
     execute_start_script,
     load_app_yaml,
     load_procfile,
+    parse_procfile,
+    parse_apprc_file,
     run_build_hooks,
     run_restart_hooks,
     save_apprc_file,
-    parse_apprc_file,
     write_circus_conf,
 )
 
@@ -298,6 +299,19 @@ class LoadProcfileTest(TestCase):
         expected = r"""web: python run_my_app.py -p $PORT -l $POORT
 worker: python run_my_worker.py""" + "\n"
         self.assertEqual(expected, content)
+
+
+class ParseProcfileTest(TestCase):
+
+    def setUp(self):
+        self.working_dir = os.path.join(os.path.dirname(__file__),
+                                        "fixtures")
+
+    def test_parse_procfile(self):
+        processes = parse_procfile(self.working_dir)
+        expected = {"web": "python run_my_app.py -p $PORT -l $POORT",
+                    "worker": "python run_my_worker.py"}
+        self.assertEqual(expected, processes)
 
 
 class WriteCircusConfTest(TestCase):
