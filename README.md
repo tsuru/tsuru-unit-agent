@@ -1,25 +1,4 @@
 tsuru-unit-agent
 ================
 
-[![Build Status](https://travis-ci.org/tsuru/tsuru-unit-agent.svg)](https://travis-ci.org/tsuru/tsuru-unit-agent)
-
-roadmap 0
----------
-
-on app start:
-
-get envs -> inject envs -> execute start cmd.
-
-roadmap 1
----------
-
-on app start:
-
-get envs -> inject envs -> pre restart hook -> execute start cmd - post restart hook.
-
-roadmap 2
----------
-
-on app start:
-
-get envs -> inject envs -> pre restart hook -> execute start cmd - post restart hook -> send status to tsuru api.
+DEPRECATED, please use [deploy-agent](https://github.com/tsuru/deploy-agent) instead.
